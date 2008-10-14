@@ -13,3 +13,5 @@ config ASHMEM
 	  because it can discard shared memory units when under memory pressure.
 
 endmenu
+
+source "drivers/staging/android/switch/Kconfig"

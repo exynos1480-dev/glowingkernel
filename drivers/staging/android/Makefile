@@ -2,3 +2,6 @@
 ccflags-y += -I$(src)			# needed for trace events
 
 obj-$(CONFIG_ASHMEM)			+= ashmem.o
+
+# Switch Class Driver
+obj-y += switch/
