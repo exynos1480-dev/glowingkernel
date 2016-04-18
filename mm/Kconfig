@@ -1074,6 +1074,13 @@ config PERCPU_STATS
 	  information includes global and per chunk statistics, which can
 	  be used to help understand percpu memory usage.
 
+config FAULT_AROUND_BYTES
+	int "Fault around bytes"
+	default 32768
+	range 4096 65536
+	help
+	  The number of bytes to be mapped around the fault.
+
 config BALANCE_ANON_FILE_RECLAIM
 	bool "During reclaim treat anon and file backed pages equally"
 	depends on SWAP
