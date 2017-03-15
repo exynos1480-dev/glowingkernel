@@ -3075,7 +3075,8 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	 * anon and page cache files for reclaim, allow swapping of anon pages
 	 * even if there are a number of inactive file cache pages.
 	 */
-	if (!balance_anon_file_reclaim && sc->cache_trim_mode) {
+	if (!balance_anon_file_reclaim && sc->cache_trim_mode &&
+	    !IS_ENABLED(CONFIG_BALANCE_ANON_FILE_RECLAIM)) {
 		scan_balance = SCAN_FILE;
 		goto out;
 	}
