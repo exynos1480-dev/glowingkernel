@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-y += amd/ intel/ arm/
+obj-y += samsung/
 obj-$(CONFIG_IOMMU_API) += iommu.o
 obj-$(CONFIG_IOMMU_API) += iommu-traces.o
 obj-$(CONFIG_IOMMU_API) += iommu-sysfs.o
