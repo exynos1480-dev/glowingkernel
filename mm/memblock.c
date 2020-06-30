@@ -137,6 +137,11 @@ struct memblock_type physmem = {
 };
 #endif
 
+#ifdef CONFIG_MEMBLOCK_MEMSIZE
+static long memsize_kinit;
+static bool memblock_memsize_tracking __initdata_memblock = true;
+#endif
+
 /*
  * keep a pointer to &memblock.memory in the text section to use it in
  * __next_mem_range() and its helpers.
@@ -677,6 +682,15 @@ repeat:
 		memblock_merge_regions(type);
 	}
 done:
+#ifdef CONFIG_MEMBLOCK_MEMSIZE
+	if (memblock_memsize_tracking) {
+		if (new_size && type == &memblock.reserved) {
+			memblock_dbg("%s: kernel %lu %+ld\n", __func__,
+				     memsize_kinit, (unsigned long)new_size);
+			memsize_kinit += size;
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -813,6 +827,15 @@ static int __init_memblock memblock_remove_range(struct memblock_type *type,
 
 	for (i = end_rgn - 1; i >= start_rgn; i--)
 		memblock_remove_region(type, i);
+#ifdef CONFIG_MEMBLOCK_MEMSIZE
+	if (memblock_memsize_tracking) {
+		if (type == &memblock.reserved) {
+			memblock_dbg("%s: kernel %lu %+ld\n", __func__,
+				     memsize_kinit, (unsigned long)size);
+			memsize_kinit -= size;
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -1974,6 +1997,21 @@ struct memsize_rgn_struct {
 static struct memsize_rgn_struct memsize_rgn[CONFIG_MAX_MEMBLOCK_MEMSIZE] __initdata_memblock;
 static int memsize_rgn_count __initdata_memblock;
 
+void __init memblock_memsize_enable_tracking(void)
+{
+	memblock_memsize_tracking = true;
+}
+
+void __init memblock_memsize_disable_tracking(void)
+{
+	memblock_memsize_tracking = false;
+}
+
+void memblock_memsize_mod_kernel_size(long size)
+{
+	memsize_kinit += size;
+}
+
 static void __init_memblock memsize_get_valid_name(char *valid_name, const char *name)
 {
 	char *head, *tail, *found;
@@ -2274,6 +2312,20 @@ static unsigned long __init __free_memory_core(phys_addr_t start,
 	unsigned long end_pfn = min_t(unsigned long,
 				      PFN_DOWN(end), max_low_pfn);
 
+#ifdef CONFIG_MEMBLOCK_MEMSIZE
+	unsigned long start_align_up = PFN_ALIGN(start);
+	unsigned long end_align_down = PFN_PHYS(end_pfn);
+
+	if (start_pfn >= end_pfn) {
+		memblock_memsize_mod_kernel_size(end - start);
+	} else {
+		if (start_align_up > start)
+			memblock_memsize_mod_kernel_size(start_align_up - start);
+		if (end_pfn != max_low_pfn && end_align_down < end)
+			memblock_memsize_mod_kernel_size(end - end_align_down);
+	}
+#endif
+
 	if (start_pfn >= end_pfn)
 		return 0;
 
@@ -2359,6 +2411,8 @@ void __init memblock_free_all(void)
 
 	pages = free_low_memory_core_early();
 	totalram_pages_add(pages);
+	
+	memblock_memsize_disable_tracking();
 }
 
 #if defined(CONFIG_DEBUG_FS) && defined(CONFIG_ARCH_KEEP_MEMBLOCK)
@@ -2440,7 +2494,6 @@ static inline void memblock_memsize_check_size(struct memsize_rgn_struct *rgn)
 	if (rgn->reusable || rgn->nomap)
 		return;
 
-	/* check the first page of each 1 MB */
 	phy = rgn->base;
 	end = rgn->base + rgn->size;
 	while (phy < end) {
@@ -2459,6 +2512,8 @@ static inline void memblock_memsize_check_size(struct memsize_rgn_struct *rgn)
 
 		if (has_freed && (phy + SZ_64K >= end))
 			memblock_memsize_free(freed, end - freed);
+
+		/* check the first page of each 1 MB */
 		phy += SZ_64K;
 	}
 }
@@ -2494,6 +2549,8 @@ static int memblock_memsize_show(struct seq_file *m, void *private)
 	}
 
 	seq_puts(m, "\n");
+	seq_printf(m, " .kernel    : %7lu KB\n",
+		   DIV_ROUND_UP(memsize_kinit, SZ_1K));
 	seq_printf(m, " .unusable  : %7lu KB\n",
 		   DIV_ROUND_UP(reserved, SZ_1K));
 	seq_printf(m, " .reusable  : %7lu KB\n",

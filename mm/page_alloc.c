@@ -8799,8 +8799,15 @@ unsigned long free_reserved_area(void *start, void *end, int poison, const char 
 		free_reserved_page(page);
 	}
 
-	if (pages && s)
+	if (pages && s) {
 		pr_info("Freeing %s memory: %ldK\n", s, K(pages));
+		if (!strcmp(s, "initrd") || !strcmp(s, "unused kernel")) {
+			long size;
+
+			size = -1 * (long)(pages << PAGE_SHIFT);
+			memblock_memsize_mod_kernel_size(size);
+		}
+	}
 
 	return pages;
 }
