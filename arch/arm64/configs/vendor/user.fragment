@@ -1,3 +1,10 @@
+# CONFIG_UH is not set
+# CONFIG_RKP is not set
+# CONFIG_KDP is not set
+# CONFIG_KDP_CRED is not set
+# CONFIG_RKP_TEST is not set
+# CONFIG_KDP_TEST is not set
+# CONFIG_KNOX_NCM is not set
 # CONFIG_DEBUG_LOCK_ALLOC is not set
 # CONFIG_SLUB_DEBUG_ON is not set
 # CONFIG_EXYNOS_DEBUG_TEST is not set
