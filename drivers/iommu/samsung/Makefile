@@ -2,4 +2,4 @@
 obj-$(CONFIG_SAMSUNG_IOMMU) += samsung_iommu.o
 samsung_iommu-objs += samsung-iommu.o samsung-iommu-fault.o
 obj-$(CONFIG_SAMSUNG_IOMMU_GROUP) += samsung-iommu-group.o
-
+obj-$(CONFIG_SAMSUNG_IOMMU_V9) += samsung-iommu-v9.o
