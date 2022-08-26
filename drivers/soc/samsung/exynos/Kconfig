@@ -3,4 +3,112 @@
 # Samsung SoC drivers
 #
 
+config EXYNOS_ACPM
+	tristate "ACPM driver support"
+	depends on ARCH_EXYNOS
+	default n
+	help
+	Support ACPM for Exynos SoC.
+
+config CAL_IF
+	tristate "Exynos Chip Abstraction Layer Interface"
+	help
+	Support CMU CAL for Exynos SoC.
+
+config EXYNOS_DEBUG_INFO
+	bool "Exynos Debug infromation"
+	default y
+	help
+	Support printing Exynos Debug information.
+
+config CMUCAL
+	tristate "Exynos CMU Chip Abstraction Layer"
+	default y
+	depends on CAL_IF
+	help
+	Support CMUCAL for Exynos SoC.
+
+config CMUCAL_V2
+	tristate "Exynos CMU Chip Abstraction Layer"
+	depends on CAL_IF
+	help
+	Support CMUCAL_V2 for Exynos SoC.
+
+config CP_PMUCAL
+	tristate "Exynos PMU(for CP) Chip Abstraction Layer"
+	default n
+	depends on CAL_IF
+	help
+	Support CP_PMUCAL for Exynos SoC.
+
+config GNSS_PMUCAL
+        tristate "Exynos PMU(for GNSS) Chip Abstraction Layer"
+        depends on CAL_IF
+        help
+        Support GNSS_PMUCAL for Exynos SoC.
+
+config CHUB_PMUCAL
+        tristate "Exynos PMU(for CHUB) Chip Abstraction Layer"
+	default n
+        depends on CAL_IF
+        help
+        Support CHUB_PMUCAL for Exynos SoC.
+
+config CMUCAL_DEBUG
+	tristate "CMUCAL Debug Interface"
+	default y
+	depends on CMUCAL
+
+config CMUCAL_QCH_IGNORE_SUPPORT
+	tristate "CMUCAL QCH IGNORE Support"
+	default y
+	depends on CMUCAL
+
+config PMUCAL
+        bool "Exynos PMU Chip Abstraction Layer"
+        depends on CAL_IF
+        default y
+        help
+        Support PMUCAL for Exynos SoC.
+
+config PMUCAL_DBG
+        tristate "Exynos PMUCAL debugging interface"
+        depends on PMUCAL
+        help
+        Support PMUCAL debugging for Exynos SoC.
+
+config EXYNOS_FLEXPMU_DBG
+        tristate "Exynos FLEXPMU debugging interface"
+	depends on SOC_S5E9925
+	help
+	Support FLEXPMU for Exynos SoC.
+
+config PMUCAL_CMU_INIT
+		tristate "CMU_INIT in kernel"
+	default n
+	help
+	Support PMUCAL_CMU_INIT for Exynos SoC.
+
+config CMU_EWF
+	tristate "exynos early wakeup force enable"
+	depends on CAL_IF
+	default n
+	help
+	Support CMUEWF for Exynos SoC.
+
+config ACPM_DVFS
+        tristate "Exynos ACPM DVFS manager"
+        depends on CAL_IF && CMUCAL
+        default n
+        help
+        Support ACPM DVFS for Exynos SoC.
+
+config EXYNOS_POWER_RAIL_DBG
+	tristate "Exynos POWER RAIL minlock debugging interface"
+	depends on ACPM_DVFS
+	default m
+	help
+	  Support POWER RAIL STATUS for Exynos SoC.
+
+source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
