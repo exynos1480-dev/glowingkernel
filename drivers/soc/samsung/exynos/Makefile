@@ -66,6 +66,9 @@ obj-$(CONFIG_EXYNOS_MCINFO)             += exynos-mcinfo.o
 # SDM
 obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o
 
+# Exynos USI V2
+obj-$(CONFIG_EXYNOS_USI_V2)		+= exynos-usi_v2.o
+
 # Exynos TZASC
 obj-$(CONFIG_EXYNOS_TZASC_FAIL_DETECTOR) += exynos-tzasc.o
 

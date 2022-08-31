@@ -210,6 +210,9 @@ config EXYNOS_SDM
 	help
 	  Exynos Security Dump Manager
 
+config EXYNOS_USI_V2
+	tristate "Enable Exynos Universal Serial Interface version 2"
+
 config EXYNOS_TZASC_FAIL_DETECTOR
 	tristate "Exynos TZASC Fail Detector"
 	default m
