@@ -135,17 +135,31 @@ void xhci_quiesce(struct xhci_hcd *xhci)
  */
 int xhci_halt(struct xhci_hcd *xhci)
 {
-	int ret;
+	int ret, i, retry = 3;
 
 	xhci_dbg_trace(xhci, trace_xhci_dbg_init, "// Halt the HC");
 	xhci_quiesce(xhci);
 
 	ret = xhci_handshake(&xhci->op_regs->status,
-			STS_HALT, STS_HALT, XHCI_MAX_HALT_USEC);
+			STS_HALT, STS_HALT, XHCI_MAX_HALT_USEC * 10);
 	if (ret) {
 		xhci_warn(xhci, "Host halt failed, %d\n", ret);
+		xhci_info(xhci, "Resetting HCD\n");
+		/* Reset the internal HC memory state and registers. */
+		for (i = 0; i < retry; i++) {
+			ret = xhci_reset(xhci, XHCI_RESET_SHORT_USEC);
+			if (!ret) {
+				xhci_info(xhci, "Reset complete\n");
+				ret = xhci_handshake(&xhci->op_regs->status,
+						STS_HALT, STS_HALT, XHCI_MAX_HALT_USEC * 10);
+				if (!ret)
+					goto out;
+			}
+		}
+		xhci_warn(xhci, "Host halt retry failed, %d\n", ret);
 		return ret;
 	}
+out:
 
 	xhci->xhc_state |= XHCI_STATE_HALTED;
 	xhci->cmd_ring_state = CMD_RING_STATE_STOPPED;
@@ -1859,8 +1873,12 @@ static int xhci_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 
 	/* Make sure the URB hasn't completed or been unlinked already */
 	ret = usb_hcd_check_unlink_urb(hcd, urb, status);
-	if (ret)
+	if (ret) {
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+		xhci_info(xhci, "%s check unlink ret=%d\n", __func__, ret);
+#endif
 		goto done;
+	}
 
 	/* give back URB now if we can't queue it for cancel */
 	vdev = xhci->devs[urb->dev->slot_id];
@@ -1921,6 +1939,11 @@ static int xhci_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 				(unsigned long long) xhci_trb_virt_to_dma(
 					urb_priv->td[i].start_seg,
 					urb_priv->td[i].first_trb));
+
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+	xhci_info(xhci, "%s num_tds %d : num_tds_done %d\n", __func__,
+		urb_priv->num_tds, urb_priv->num_tds_done);
+#endif
 
 	for (; i < urb_priv->num_tds; i++) {
 		td = &urb_priv->td[i];
@@ -3226,8 +3249,10 @@ void xhci_reset_bandwidth(struct usb_hcd *hcd, struct usb_device *udev)
 	for (i = 0; i < 31; i++) {
 		if (virt_dev->eps[i].new_ring) {
 			xhci_debugfs_remove_endpoint(xhci, virt_dev, i);
-			if (xhci_vendor_is_usb_offload_enabled(xhci, virt_dev, i))
+			if (xhci_vendor_is_usb_offload_enabled(xhci, virt_dev, i)) {
+				xhci->quirks |= BIT_ULL(60);
 				xhci_vendor_free_transfer_ring(xhci, virt_dev, i);
+			}
 			else
 				xhci_ring_free(xhci, virt_dev->eps[i].new_ring);
 
