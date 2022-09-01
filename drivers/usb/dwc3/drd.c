@@ -451,12 +451,15 @@ static int dwc3_usb_role_switch_set(struct usb_role_switch *sw,
 {
 	struct dwc3 *dwc = usb_role_switch_get_drvdata(sw);
 	u32 mode;
+	pr_info("%s called\n", __func__);
 
 	switch (role) {
 	case USB_ROLE_HOST:
+		pr_info("%s HOST called\n", __func__);
 		mode = DWC3_GCTL_PRTCAP_HOST;
 		break;
 	case USB_ROLE_DEVICE:
+		pr_info("%s DEVICE called\n", __func__);
 		mode = DWC3_GCTL_PRTCAP_DEVICE;
 		break;
 	default:
@@ -504,6 +507,8 @@ static int dwc3_setup_role_switch(struct dwc3 *dwc)
 	struct usb_role_switch_desc dwc3_role_switch = {NULL};
 	u32 mode;
 
+	pr_info("%s called\n", __func__);
+
 	dwc->role_switch_default_mode = usb_get_role_switch_default_mode(dwc->dev);
 	if (dwc->role_switch_default_mode == USB_DR_MODE_HOST) {
 		mode = DWC3_GCTL_PRTCAP_HOST;
@@ -543,6 +548,8 @@ static int dwc3_setup_role_switch(struct dwc3 *dwc)
 int dwc3_drd_init(struct dwc3 *dwc)
 {
 	int ret, irq;
+
+	pr_info("%s called\n", __func__);
 
 	if (ROLE_SWITCH &&
 	    device_property_read_bool(dwc->dev, "usb-role-switch"))

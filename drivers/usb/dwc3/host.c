@@ -92,11 +92,13 @@ int dwc3_host_init(struct dwc3 *dwc)
 	int			ret, irq;
 	int			prop_idx = 0;
 
+	pr_info("%s called\n", __func__);
+
 	irq = dwc3_host_get_irq(dwc);
 	if (irq < 0)
 		return irq;
 
-	xhci = platform_device_alloc("xhci-hcd", PLATFORM_DEVID_AUTO);
+	xhci = platform_device_alloc("xhci-hcd-exynos", PLATFORM_DEVID_AUTO);
 	if (!xhci) {
 		dev_err(dwc->dev, "couldn't allocate xHCI device\n");
 		return -ENOMEM;
@@ -162,6 +164,7 @@ err:
 
 void dwc3_host_exit(struct dwc3 *dwc)
 {
+	pr_info("%s called\n", __func__);
 	dwc3_enable_susphy(dwc, false);
 	platform_device_unregister(dwc->xhci);
 	dwc->xhci = NULL;
