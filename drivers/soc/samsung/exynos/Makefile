@@ -65,3 +65,12 @@ obj-$(CONFIG_EXYNOS_MCINFO)             += exynos-mcinfo.o
 
 # SDM
 obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o
+
+# Exynos TZASC
+obj-$(CONFIG_EXYNOS_TZASC_FAIL_DETECTOR) += exynos-tzasc.o
+
+# Exynos SEH
+obj-$(CONFIG_EXYNOS_SEH)        	+= exynos-seh.o
+
+# Exynos Secure Log
+obj-$(CONFIG_EXYNOS_SECURE_LOG) 	+= exynos-seclog.o
