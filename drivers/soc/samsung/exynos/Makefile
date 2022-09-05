@@ -62,3 +62,6 @@ obj-$(CONFIG_EXYNOS_HYP)		+= exynos-hyp/
 
 # Exynos MCINFO
 obj-$(CONFIG_EXYNOS_MCINFO)             += exynos-mcinfo.o
+
+# SDM
+obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o

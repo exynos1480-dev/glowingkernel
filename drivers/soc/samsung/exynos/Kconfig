@@ -203,6 +203,13 @@ config MCINFO_SYSFS
         depends on EXYNOS_MCINFO
         default y if SYSFS
 
+config EXYNOS_SDM
+	tristate "Exynos Security Dump Manager Support"
+	depends on DEBUG_SNAPSHOT
+	default m
+	help
+	  Exynos Security Dump Manager
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/dm/Kconfig"
