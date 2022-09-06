@@ -109,3 +109,5 @@ config EXYNOS_REGULATOR_COUPLER
 	bool "Exynos SoC Regulator Coupler" if COMPILE_TEST
 	depends on ARCH_EXYNOS || COMPILE_TEST
 endif
+
+source "drivers/soc/samsung/exynos/Kconfig"
