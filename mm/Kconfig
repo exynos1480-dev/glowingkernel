@@ -1084,6 +1084,14 @@ config BALANCE_ANON_FILE_RECLAIM
 	  Swapping anonymous pages out to memory can be efficient enough to justify
 	  treating anonymous and file backed pages equally.
 
+config MMAP_READAROUND_LIMIT
+	int "Limit mmap readaround upperbound"
+	default 16
+	help
+	  Inappropriate mmap readaround size can hurt device performance
+	  during the sluggish situation. Add the hard upper-limit for
+	  mmap readaround.
+
 config GUP_TEST
 	bool "Enable infrastructure for get_user_pages()-related unit tests"
 	depends on DEBUG_FS
