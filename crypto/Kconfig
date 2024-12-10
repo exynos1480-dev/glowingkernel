@@ -1263,6 +1263,15 @@ config CRYPTO_LZ4
 
 	  See https://github.com/lz4/lz4 for further information.
 
+config CRYPTO_LZ4FAST
+        tristate "LZ4FAST"
+        select CRYPTO_ALGAPI
+        select CRYPTO_ACOMP2
+        select LZ4_COMPRESS
+        select LZ4_DECOMPRESS
+        help
+          This is the LZ4 fast mode algorithm.
+
 config CRYPTO_LZ4HC
 	tristate "LZ4HC"
 	select CRYPTO_ALGAPI
