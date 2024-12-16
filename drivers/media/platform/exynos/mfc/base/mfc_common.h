@@ -262,6 +262,7 @@ static struct mfc_resolution mfc_res[] = {
 /* UHD resolution */
 #define MFC_UHD_RES		(3840 * 2160)
 #define OVER_UHD_RES(ctx)	(((ctx)->crop_width * (ctx)->crop_height) >= MFC_UHD_RES)
+#define IS_UHD_RES(ctx)		(((ctx)->crop_width * (ctx)->crop_height) == MFC_UHD_RES)
 
 /* FHD resolution */
 #define MFC_FHD_RES		(1920 * 1088)
