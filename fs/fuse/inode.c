@@ -1481,6 +1481,12 @@ static void process_init_reply(struct fuse_mount *fm, struct fuse_args *args,
 		fc->conn_error = 1;
 	}
 
+#ifdef CONFIG_FUSE_WATCHDOG
+	fuse_daemon_watchdog_start(fc);
+#endif
+
+	ST_LOG("<%s> dev = %u:%u  fuse Initialized",
+			__func__, MAJOR(fc->dev), MINOR(fc->dev));
 	fuse_set_initialized(fc);
 	wake_up_all(&fc->blocked_waitq);
 }

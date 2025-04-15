@@ -2162,6 +2162,9 @@ void fuse_abort_conn(struct fuse_conn *fc)
 {
 	struct fuse_iqueue *fiq = &fc->iq;
 
+	ST_LOG("<%s> dev = %u:%u  fuse abort all requests",
+			__func__, MAJOR(fc->dev), MINOR(fc->dev));
+
 	spin_lock(&fc->lock);
 	if (fc->connected) {
 		struct fuse_dev *fud;
