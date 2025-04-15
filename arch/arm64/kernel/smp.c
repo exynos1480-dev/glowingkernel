@@ -143,7 +143,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 	if (cpu_online(cpu))
 		return 0;
 
-	pr_crit("CPU%u: failed to come online\n", cpu);
+	panic("CPU%u: failed to come online\n", cpu);
 	secondary_data.task = NULL;
 	status = READ_ONCE(secondary_data.status);
 	if (status == CPU_MMU_OFF)
