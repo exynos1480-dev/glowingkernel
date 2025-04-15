@@ -29,6 +29,12 @@
 #include "iostat.h"
 #include <trace/events/f2fs.h>
 
+#ifdef CONFIG_PROC_FSLOG
+#include <linux/fslog.h>
+#else
+#define ST_LOG(fmt, ...)
+#endif
+
 #define NUM_PREALLOC_POST_READ_CTXS	128
 
 static struct kmem_cache *bio_post_read_ctx_cache;

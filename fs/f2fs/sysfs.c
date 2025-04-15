@@ -19,6 +19,11 @@
 #include "gc.h"
 #include "iostat.h"
 #include <trace/events/f2fs.h>
+#ifdef CONFIG_PROC_FSLOG
+#include <linux/fslog.h>
+#else
+#define ST_LOG(fmt, ...)
+#endif
 
 static struct proc_dir_entry *f2fs_proc_root;
 

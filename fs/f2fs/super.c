@@ -35,6 +35,11 @@
 #include "segment.h"
 #include "xattr.h"
 #include "gc.h"
+#ifdef CONFIG_PROC_FSLOG
+#include <linux/fslog.h>
+#else
+#define ST_LOG(fmt, ...)
+#endif
 #include "iostat.h"
 
 #define CREATE_TRACE_POINTS
