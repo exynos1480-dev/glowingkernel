@@ -240,6 +240,7 @@ source "drivers/peci/Kconfig"
 source "drivers/hte/Kconfig"
 
 # Samsung drivers
+source "drivers/bts/Kconfig"
 source "drivers/samsung/Kconfig"
 source "drivers/samsung/debug/Kconfig"
 source "drivers/samsung/pm/sec_thermistor/Kconfig"

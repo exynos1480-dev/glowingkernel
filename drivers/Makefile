@@ -191,6 +191,7 @@ obj-$(CONFIG_PECI)		+= peci/
 obj-$(CONFIG_HTE)		+= hte/
 
 # Samsung drivers
+obj-$(CONFIG_EXYNOS_BTS)        += bts/
 obj-y += samsung/
 obj-y += samsung/debug/
 obj-y += samsung/pm/sec_thermistor/
