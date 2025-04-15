@@ -118,3 +118,8 @@ config PROC_STLOG
 	bool "Enable Storage log"
 	depends on PROC_FSLOG
 	default y
+
+config PROC_DLOG
+	bool "Enable delete logs for improving filesystem debug"
+	depends on PROC_FSLOG
+	default y
