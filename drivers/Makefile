@@ -202,3 +202,4 @@ obj-y += battery/common/
 obj-y += battery/core/
 obj-y += battery/fuelgauge/s2mf301_fuelgauge/
 obj-y += battery/fuelgauge/sm5714_fuelgauge/
+obj-y += fingerprint/
