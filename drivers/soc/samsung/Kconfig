@@ -5,6 +5,12 @@
 menuconfig SOC_SAMSUNG
 	bool "Samsung SoC driver support" if COMPILE_TEST
 
+config SOC_S5E8845
+        bool "Samsung S5E8845"
+        select ARCH_EXYNOS
+        help
+        Support Samsung SOC S5E8845.
+
 if SOC_SAMSUNG
 
 # There is no need to enable these drivers for ARMv8
