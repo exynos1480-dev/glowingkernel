@@ -19,6 +19,7 @@
 #include <linux/syscalls.h>
 #include <linux/dma-heap.h>
 #include <uapi/linux/dma-heap.h>
+#include <trace/events/tracing_mark_write.h>
 
 #define DEVNAME "dma_heap"
 
@@ -80,6 +81,8 @@ struct dma_buf *dma_heap_buffer_alloc(struct dma_heap *heap, size_t len,
 				      unsigned int fd_flags,
 				      unsigned int heap_flags)
 {
+	struct dma_buf *dma_buf;
+
 	if (fd_flags & ~DMA_HEAP_VALID_FD_FLAGS)
 		return ERR_PTR(-EINVAL);
 
@@ -93,7 +96,12 @@ struct dma_buf *dma_heap_buffer_alloc(struct dma_heap *heap, size_t len,
 	if (!len)
 		return ERR_PTR(-EINVAL);
 
-	return heap->ops->allocate(heap, len, fd_flags, heap_flags);
+	tracing_mark_begin("%s(%s, %zu, 0x%x, 0x%x)", "dma-buf_alloc",
+			   heap->name, len, fd_flags, heap_flags);
+	dma_buf = heap->ops->allocate(heap, len, fd_flags, heap_flags);
+	tracing_mark_end();
+
+	return dma_buf;
 }
 EXPORT_SYMBOL_GPL(dma_heap_buffer_alloc);
 
@@ -440,6 +448,25 @@ static void dma_heap_sysfs_teardown(void)
 	kobject_put(dma_heap_kobject);
 }
 
+long try_get_dma_heap_pool_size_kb(void)
+{
+	struct dma_heap *heap;
+	u64 total_pool_size = 0;
+
+	if (!mutex_trylock(&heap_list_lock))
+		return -1;
+
+	list_for_each_entry(heap, &heap_list, list) {
+		if (heap->ops->get_pool_size)
+			total_pool_size += heap->ops->get_pool_size(heap);
+	}
+	mutex_unlock(&heap_list_lock);
+
+	return (long)(total_pool_size / 1024);
+}
+
+extern void dma_heap_trace_init(void);
+
 static int dma_heap_init(void)
 {
 	int ret;
@@ -458,6 +485,8 @@ static int dma_heap_init(void)
 		goto err_class;
 	}
 	dma_heap_class->devnode = dma_heap_devnode;
+
+	dma_heap_trace_init();
 
 	return 0;
 
