@@ -7,6 +7,7 @@
 #include <linux/kasan-tags.h>
 #include <linux/kfence.h>
 #include <linux/stackdepot.h>
+#include <asm/cacheflush.h>
 
 #if defined(CONFIG_KASAN_SW_TAGS) || defined(CONFIG_KASAN_HW_TAGS)
 
@@ -456,8 +457,11 @@ static inline void kasan_poison(const void *addr, size_t size, u8 value, bool in
 		return;
 	if (WARN_ON(size & KASAN_GRANULE_MASK))
 		return;
+	if (!size)
+		return;
 
 	hw_set_mem_tag_range((void *)addr, size, value, init);
+	dcache_clean_inval_poc((unsigned long)addr, (unsigned long)addr + size);
 }
 
 static inline void kasan_unpoison(const void *addr, size_t size, bool init)
@@ -484,9 +488,13 @@ static inline void kasan_unpoison(const void *addr, size_t size, bool init)
 		init = false;
 		memzero_explicit((void *)addr, size);
 	}
+	if (!size)
+		return;
+
 	size = round_up(size, KASAN_GRANULE_SIZE);
 
 	hw_set_mem_tag_range((void *)addr, size, tag, init);
+	dcache_clean_inval_poc((unsigned long)addr, (unsigned long)addr + size);
 }
 
 static inline bool kasan_byte_accessible(const void *addr)
