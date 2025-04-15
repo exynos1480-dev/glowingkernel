@@ -35,6 +35,7 @@
 #include <linux/refcount.h>
 #include <linux/user_namespace.h>
 #include <linux/statfs.h>
+#include <linux/sched.h>
 
 #ifdef CONFIG_FUSE_SUPPORT_STLOG
 #include <linux/fslog.h>
@@ -1459,6 +1460,25 @@ void fuse_passthrough_release(struct fuse_passthrough *passthrough);
 ssize_t fuse_passthrough_read_iter(struct kiocb *iocb, struct iov_iter *to);
 ssize_t fuse_passthrough_write_iter(struct kiocb *iocb, struct iov_iter *from);
 ssize_t fuse_passthrough_mmap(struct file *file, struct vm_area_struct *vma);
+
+#ifdef CONFIG_FUSE_FREEZABLE_WAIT
+#define fuse_wait_event(wq, condition)					\
+	wait_event_state(wq, condition, (TASK_UNINTERRUPTIBLE|TASK_FREEZABLE))
+
+#define fuse_wait_event_killable(wq, condition)				\
+	wait_event_state(wq, condition, (TASK_KILLABLE|TASK_FREEZABLE))
+
+#define fuse_wait_event_killable_exclusive(wq, condition)		\
+({									\
+	int ___ret = 0;							\
+	might_sleep();							\
+	if (!(condition))						\
+		___ret = ___wait_event(wq, condition,			\
+				(TASK_KILLABLE|TASK_FREEZABLE),		\
+				1, 0, schedule());			\
+	___ret;								\
+})
+#endif /* CONFIG_FUSE_FREEZABLE_WAIT */
 
 /* backing.c */
 

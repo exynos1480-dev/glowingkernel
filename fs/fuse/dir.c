@@ -1899,7 +1899,11 @@ void fuse_set_nowrite(struct inode *inode)
 	BUG_ON(fi->writectr < 0);
 	fi->writectr += FUSE_NOWRITE;
 	spin_unlock(&fi->lock);
+#ifdef CONFIG_FUSE_FREEZABLE_WAIT
+	fuse_wait_event(fi->page_waitq, fi->writectr == FUSE_NOWRITE);
+#else
 	wait_event(fi->page_waitq, fi->writectr == FUSE_NOWRITE);
+#endif
 }
 
 /*

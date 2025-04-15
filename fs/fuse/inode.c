@@ -761,7 +761,11 @@ static void fuse_sync_fs_writes(struct fuse_conn *fc)
 	 */
 	atomic_dec(&bucket->count);
 
+#ifdef CONFIG_FUSE_FREEZABLE_WAIT
+	fuse_wait_event(bucket->waitq, atomic_read(&bucket->count) == 0);
+#else
 	wait_event(bucket->waitq, atomic_read(&bucket->count) == 0);
+#endif
 
 	/* Drop temp count on descendant bucket */
 	fuse_sync_bucket_dec(new_bucket);
