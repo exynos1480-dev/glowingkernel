@@ -199,3 +199,4 @@ obj-y += battery/charger/sm5461_charger/
 obj-y += battery/charger/sm5714_charger/
 obj-y += battery/common/
 obj-y += battery/core/
+obj-y += battery/fuelgauge/s2mf301_fuelgauge/

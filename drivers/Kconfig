@@ -248,5 +248,6 @@ source "drivers/battery/charger/sm5461_charger/Kconfig"
 source "drivers/battery/charger/sm5714_charger/Kconfig"
 source "drivers/battery/common/Kconfig"
 source "drivers/battery/core/Kconfig"
+source "drivers/battery/fuelgauge/s2mf301_fuelgauge/Kconfig"
 
 endmenu
