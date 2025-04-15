@@ -243,5 +243,6 @@ source "drivers/hte/Kconfig"
 source "drivers/samsung/Kconfig"
 source "drivers/samsung/debug/Kconfig"
 source "drivers/samsung/pm/sec_thermistor/Kconfig"
+source "drivers/battery/charger/s2mf301_charger/Kconfig"
 
 endmenu

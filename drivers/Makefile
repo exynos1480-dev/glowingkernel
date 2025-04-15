@@ -194,4 +194,4 @@ obj-$(CONFIG_HTE)		+= hte/
 obj-y += samsung/
 obj-y += samsung/debug/
 obj-y += samsung/pm/sec_thermistor/
-
+obj-y += battery/charger/s2mf301_charger/
