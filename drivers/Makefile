@@ -196,3 +196,4 @@ obj-y += samsung/debug/
 obj-y += samsung/pm/sec_thermistor/
 obj-y += battery/charger/s2mf301_charger/
 obj-y += battery/charger/sm5461_charger/
+obj-y += battery/charger/sm5714_charger/
