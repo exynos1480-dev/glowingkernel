@@ -246,5 +246,6 @@ source "drivers/samsung/pm/sec_thermistor/Kconfig"
 source "drivers/battery/charger/s2mf301_charger/Kconfig"
 source "drivers/battery/charger/sm5461_charger/Kconfig"
 source "drivers/battery/charger/sm5714_charger/Kconfig"
+source "drivers/battery/common/Kconfig"
 
 endmenu
