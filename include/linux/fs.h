@@ -3754,4 +3754,5 @@ extern int vfs_fadvise(struct file *file, loff_t offset, loff_t len,
 extern int generic_fadvise(struct file *file, loff_t offset, loff_t len,
 			   int advice);
 
+extern atomic_t f2fs_check_pkt_flag;
 #endif /* _LINUX_FS_H */

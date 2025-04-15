@@ -48,6 +48,16 @@ static void page_array_free(struct inode *inode, void *pages, int nr)
 		kfree(pages);
 }
 
+void *f2fs_page_array_alloc(struct inode *inode, int nr)
+{
+	return page_array_alloc(inode, nr);
+}
+
+void f2fs_page_array_free(struct inode *inode, void *pages, int nr)
+{
+	page_array_free(inode, pages, nr);
+}
+
 struct f2fs_compress_ops {
 	int (*init_compress_ctx)(struct compress_ctx *cc);
 	void (*destroy_compress_ctx)(struct compress_ctx *cc);
