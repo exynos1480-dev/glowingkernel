@@ -41,3 +41,7 @@ obj-$(CONFIG_BLK_INLINE_ENCRYPTION)	+= blk-crypto.o blk-crypto-profile.o \
 					   blk-crypto-sysfs.o
 obj-$(CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK)	+= blk-crypto-fallback.o
 obj-$(CONFIG_BLOCK_HOLDER_DEPRECATED)	+= holder.o
+obj-$(CONFIG_BLK_SEC_COMMON)		+= blk-sec-common.o
+blk-sec-stats-$(CONFIG_BLK_SEC_STATS)	:= blk-sec-stat.o blk-sec-stat-pio.o blk-sec-stat-traffic.o
+obj-$(CONFIG_BLK_SEC_STATS)		+= blk-sec-stats.o
+obj-$(CONFIG_BLK_SEC_WB)		+= blk-sec-wb.o
