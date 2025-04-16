@@ -210,6 +210,12 @@ config EXYNOS_SDM
 	help
 	  Exynos Security Dump Manager
 
+config EXYNOS_IMGLOADER
+	tristate "Exynos Image Loader"
+	default n
+	help
+	  Enable Image Loader for Exynos SoC.
+
 config EXYNOS_USI_V2
 	tristate "Enable Exynos Universal Serial Interface version 2"
 
