@@ -1,3 +1,4 @@
 source "drivers/misc/samsung/gpio_debug/Kconfig"
 source "drivers/misc/samsung/ifconn/Kconfig"
+source "drivers/misc/samsung/kic/Kconfig"
 source "drivers/misc/samsung/muic/Kconfig"
