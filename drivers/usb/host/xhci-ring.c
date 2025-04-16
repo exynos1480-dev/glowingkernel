@@ -433,8 +433,13 @@ static int xhci_abort_cmd_ring(struct xhci_hcd *xhci, unsigned long flags)
 	 * and try to recover a -ETIMEDOUT with a host controller reset.
 	 */
 	ret = xhci_handshake_check_state(xhci, &xhci->op_regs->cmd_ring,
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+			CMD_RING_RUNNING, 0, 5 * 100 * 1000,
+#else
 			CMD_RING_RUNNING, 0, 5 * 1000 * 1000,
+#endif
 			XHCI_STATE_REMOVING);
+
 	if (ret < 0) {
 		xhci_err(xhci, "Abort failed to stop command ring: %d\n", ret);
 		xhci_halt(xhci);
@@ -452,7 +457,12 @@ static int xhci_abort_cmd_ring(struct xhci_hcd *xhci, unsigned long flags)
 					  msecs_to_jiffies(2000));
 	spin_lock_irqsave(&xhci->lock, flags);
 	if (!ret) {
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+		xhci_info(xhci, "No stop event for abort, ring start fail?\n");
+		cancel_delayed_work(&xhci->cmd_timer);
+#else
 		xhci_dbg(xhci, "No stop event for abort, ring start fail?\n");
+#endif
 		xhci_cleanup_command_queue(xhci);
 	} else {
 		xhci_handle_stopped_cmd_ring(xhci, xhci_next_queued_cmd(xhci));

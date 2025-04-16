@@ -1871,7 +1871,12 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	 * bus_resume methods.
 	 */
 	if (hdev->parent) {		/* normal device */
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+		if (!(hdev->quirks & USB_QUIRK_HUB_NO_SUSPEND))
+			usb_enable_autosuspend(hdev);
+#else
 		usb_enable_autosuspend(hdev);
+#endif
 	} else {			/* root hub */
 		const struct hc_driver *drv = bus_to_hcd(hdev->bus)->driver;
 
@@ -5080,6 +5085,12 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 				retval = hub_set_address(udev, devnum);
 				if (retval >= 0)
 					break;
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+				if (udev->reset_resume && retval < 0) {
+					dev_err(&udev->dev, "set address fail in reset resume\n");
+					break;
+				}
+#endif
 				msleep(200);
 			}
 			if (retval < 0) {
@@ -5455,6 +5466,13 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 			goto done;
 		return;
 	}
+
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	/* clear unreliable_port when port is stable */
+	if (unreliable_port == port1)
+		unreliable_port = -1;
+#endif
+
 	if (hub_is_superspeed(hub->hdev))
 		unit_load = 150;
 	else
@@ -6185,6 +6203,12 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 		ret = hub_port_init(parent_hub, udev, port1, i, &descriptor);
 		if (ret >= 0 || ret == -ENOTCONN || ret == -ENODEV)
 			break;
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+		if (ret < 0 && udev->reset_resume == 1) {
+			dev_err(&udev->dev, "hub_port_init fail in reset resume\n");
+			break;
+		}
+#endif
 	}
 	mutex_unlock(hcd->address0_mutex);
 

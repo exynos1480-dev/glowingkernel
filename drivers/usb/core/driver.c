@@ -1532,10 +1532,19 @@ static int usb_resume_both(struct usb_device *udev, pm_message_t msg)
 					udev->reset_resume);
 		}
 	}
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	if (!udev)
+		goto done;
+#endif
 	usb_mark_last_busy(udev);
 
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	dev_vdbg(&udev->dev, "%s: status %d\n", __func__, status);
+ done:
+#else
  done:
 	dev_vdbg(&udev->dev, "%s: status %d\n", __func__, status);
+#endif
 	if (!status)
 		udev->reset_resume = 0;
 	return status;

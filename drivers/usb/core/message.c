@@ -149,7 +149,10 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe, __u8 request,
 	dr->wValue = cpu_to_le16(value);
 	dr->wIndex = cpu_to_le16(index);
 	dr->wLength = cpu_to_le16(size);
-
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	if (dev && dev->reset_resume == 1)
+		timeout = 500;
+#endif
 	ret = usb_internal_control_msg(dev, pipe, dr, data, size, timeout);
 
 	/* Linger a bit, prior to the next control message. */
@@ -1388,6 +1391,30 @@ static void usb_disable_device_endpoints(struct usb_device *dev, int skip_ep0)
 void usb_disable_device(struct usb_device *dev, int skip_ep0)
 {
 	int i;
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	struct usb_hcd *hcd = bus_to_hcd(dev->bus);
+
+	dev_info(&dev->dev, "%s first disable endpoint\n", __func__);
+	if (hcd->driver->check_bandwidth) {
+		/* First pass: Cancel URBs, leave endpoint pointers intact. */
+		for (i = skip_ep0; i < 16; ++i) {
+			usb_disable_endpoint(dev, i, false);
+			usb_disable_endpoint(dev, i + USB_DIR_IN, false);
+		}
+		/* Remove endpoints from the host controller internal state */
+		mutex_lock(hcd->bandwidth_mutex);
+		dev_info(&dev->dev, "%s alloc bandwidth\n", __func__);
+		usb_hcd_alloc_bandwidth(dev, NULL, NULL, NULL);
+		mutex_unlock(hcd->bandwidth_mutex);
+		/* Second pass: remove endpoint pointers */
+	}
+	dev_info(&dev->dev, "%s second disable endpoint\n", __func__);
+	for (i = skip_ep0; i < 16; ++i) {
+		usb_disable_endpoint(dev, i, true);
+		usb_disable_endpoint(dev, i + USB_DIR_IN, true);
+	}
+	dev_info(&dev->dev, "%s disable endpoint end\n", __func__);
+#endif
 
 	/* getting rid of interfaces will disconnect
 	 * any drivers bound to them (a key side effect)

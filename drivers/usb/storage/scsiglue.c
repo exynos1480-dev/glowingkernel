@@ -383,6 +383,17 @@ static int queuecommand_lck(struct scsi_cmnd *srb)
 		return 0;
 	}
 
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	if (test_bit(US_FLIDX_ABORTING, &us->dflags)) {
+		usb_stor_dbg(us, "Fail command during abort\n");
+		pr_err("usb-storage: %s, Fail command during abort\n",
+				__func__);
+		srb->result = DID_NO_CONNECT << 16;
+		done(srb);
+		return 0;
+	}
+#endif
+
 	if ((us->fflags & US_FL_NO_ATA_1X) &&
 			(srb->cmnd[0] == ATA_12 || srb->cmnd[0] == ATA_16)) {
 		memcpy(srb->sense_buffer, usb_stor_sense_invalidCDB,

@@ -235,7 +235,11 @@ static int xhci_exynos_check_port(struct usb_device *dev, bool on)
 			bInterfaceClass = udev->config->interface[0]
 			    ->cur_altsetting->desc.bInterfaceClass;
 			if (on) {
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+				if (bInterfaceClass == USB_CLASS_AUDIO) {
+#else
 				if (bInterfaceClass == USB_CLASS_HID || bInterfaceClass == USB_CLASS_AUDIO) {
+#endif
 					udev->do_remote_wakeup =
 					    (udev->config->desc.bmAttributes & USB_CONFIG_ATT_WAKEUP) ? 1 : 0;
 					if (udev->do_remote_wakeup == 1) {
@@ -984,6 +988,18 @@ static int xhci_exynos_remove(struct platform_device *dev)
 	dev_info(&dev->dev, "XHCI PLAT REMOVE\n");
 	xhci_exynos->usb_host_ready = false;
 
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+	pr_info("%s\n", __func__);
+	/* In order to prevent kernel panic */
+	if (!pm_runtime_suspended(&xhci->shared_hcd->self.root_hub->dev)) {
+		pr_info("%s, shared_hcd pm_runtime_forbid\n", __func__);
+		pm_runtime_forbid(&xhci->shared_hcd->self.root_hub->dev);
+	}
+	if (!pm_runtime_suspended(&xhci->main_hcd->self.root_hub->dev)) {
+		pr_info("%s, main_hcd pm_runtime_forbid\n", __func__);
+		pm_runtime_forbid(&xhci->main_hcd->self.root_hub->dev);
+	}
+#endif
 	pm_runtime_get_sync(&dev->dev);
 	xhci->xhc_state |= XHCI_STATE_REMOVING;
 

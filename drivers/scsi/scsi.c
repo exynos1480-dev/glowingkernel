@@ -195,7 +195,7 @@ void scsi_finish_command(struct scsi_cmnd *cmd)
 		if (good_bytes == old_good_bytes)
 			good_bytes -= scsi_get_resid(cmd);
 	}
-#if defined(CONFIG_SEC_FACTORY)
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
 	if (cmd && sdev && sdev->removable &&
 			cmd->cmnd[0] == TEST_UNIT_READY) {
 		scmd_printk(KERN_INFO, cmd, "%s TEST_UNIT_READY\n",

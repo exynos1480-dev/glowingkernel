@@ -70,6 +70,15 @@ config USB_NOTIFY_PROC_LOG
 	 are saved in usblog heap.
 	 It is remained in dumpdate.
 
+config USB_HOST_SAMSUNG_FEATURE
+	bool "USB Host Samsung Feature"
+	depends on USB
+	help
+	 USB Host Samsung Feature.
+	 It is different from LSI BSP code.
+	 If samsung engineer changes kernel code,
+	 use this feature,
+
 config USB_HW_PARAM
 	bool "USB H/W Parameter"
 	depends on USB_NOTIFY_LAYER
