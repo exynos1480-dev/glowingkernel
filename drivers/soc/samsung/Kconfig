@@ -141,4 +141,11 @@ config EXYNOS_BCM_DBG_DUMP
 	help
 	  Enable exynos-bcm_dbg dump support
 
+config EXYNOS_CPUPM
+	tristate "Exynos CPU Power Management driver"
+	depends on ARCH_EXYNOS && PMUCAL
+	default n
+	help
+	  Support Exynos CPU Power Control for EXYNOS SoC.
+
 source "drivers/soc/samsung/exynos/Kconfig"
