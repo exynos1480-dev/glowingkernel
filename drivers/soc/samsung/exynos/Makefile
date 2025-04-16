@@ -69,6 +69,9 @@ obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o
 # Memlogger
 obj-$(CONFIG_EXYNOS_MEMORY_LOGGER)	+= memlogger.o
 
+# Subsystem
+obj-$(CONFIG_EXYNOS_SYSTEM_EVENT)	+= sysevent.o sysevent_notif.o
+
 # secmem
 obj-$(CONFIG_EXYNOS_CONTENT_PATH_PROTECTION) += secmem.o
 

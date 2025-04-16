@@ -220,6 +220,12 @@ config EXYNOS_MEMORY_LOGGER
 	  the logging method desired by each driver in memory for debugging,
 	  memlog provides APIs for memory logging.
 
+config EXYNOS_SYSTEM_EVENT
+	tristate "Exynos System Event Framework"
+	default n
+	help
+	  Enable System Event Framework for Exynos SoC.
+
 config EXYNOS_CONTENT_PATH_PROTECTION
 	tristate "Exynos Content Path Protection"
 	default m
