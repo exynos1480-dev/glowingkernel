@@ -2,5 +2,6 @@
 # without this our samsung subdir is NOT cleaned.
 clean-files := built-in.o
 
+obj-$(CONFIG_GPIO_DEBUG)		+= gpio_debug/
 obj-$(CONFIG_MUIC_SAMSUNG_IFPMIC)	+= ifconn/
 obj-$(CONFIG_MUIC_SAMSUNG_IFPMIC)	+= muic/
