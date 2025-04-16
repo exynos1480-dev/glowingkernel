@@ -11,3 +11,6 @@ obj-$(CONFIG_EXYNOS_DEBUG)		+= debug/
 
 # Exynos Isolated CryptoManager
 obj-$(CONFIG_EXYNOS_ICM)		+= exynos-icm.o
+
+# Exynos Samsung Secure Platform
+obj-$(CONFIG_EXYNOS_SSP)        	+= exynos-ssp.o

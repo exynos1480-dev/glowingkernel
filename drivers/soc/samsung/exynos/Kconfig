@@ -117,5 +117,11 @@ config EXYNOS_ICM
 	help
 	  Support Exynos Isolated CryptoManager driver
 
+config EXYNOS_SSP
+	tristate "Exynos Samsung Secure Platform"
+	default m
+	help
+	  Support Samsung Secure Platform
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
