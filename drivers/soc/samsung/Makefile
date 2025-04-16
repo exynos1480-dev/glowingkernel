@@ -29,4 +29,7 @@ obj-$(CONFIG_EXYNOS_CPUPM)      += exynos-cpupm.o
 obj-$(CONFIG_EXYNOS_CPUHP)      += exynos-cpuhp.o
 obj-$(CONFIG_EXYNOS_IDLE_LAT)	+= exynos-idle-lat.o
 
+# AFM
+obj-$(CONFIG_EXYNOS_AFM)        += exynos-afm.o
+
 obj-$(CONFIG_SOC_SAMSUNG)       += exynos/

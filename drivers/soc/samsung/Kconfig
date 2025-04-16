@@ -161,4 +161,11 @@ config EXYNOS_IDLE_LAT
 	help
 	  Support Exynos CPUIDLE latency test.
 
+config EXYNOS_AFM
+	tristate "Exynos AFM Handler"
+	depends on CPU_FREQ
+	default n
+	help
+	  Enable AFM handler for Exynos SoC.
+
 source "drivers/soc/samsung/exynos/Kconfig"
