@@ -69,6 +69,9 @@ obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o
 # Memlogger
 obj-$(CONFIG_EXYNOS_MEMORY_LOGGER)	+= memlogger.o
 
+# secmem
+obj-$(CONFIG_EXYNOS_CONTENT_PATH_PROTECTION) += secmem.o
+
 # Image Loader
 obj-$(CONFIG_EXYNOS_IMGLOADER)		+= imgloader.o
 

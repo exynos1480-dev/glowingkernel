@@ -220,6 +220,19 @@ config EXYNOS_MEMORY_LOGGER
 	  the logging method desired by each driver in memory for debugging,
 	  memlog provides APIs for memory logging.
 
+config EXYNOS_CONTENT_PATH_PROTECTION
+	tristate "Exynos Content Path Protection"
+	default m
+	help
+	  Enable content path protection of EXYNOS.
+
+config EXYNOS_DP_POWER_CONTROL
+	bool "Exynos DP power control for DRM"
+	depends on HDCP2_DP_ENABLE
+	default n
+	help
+	  Enable DP power control of EXYNOS.
+
 config EXYNOS_IMGLOADER
 	tristate "Exynos Image Loader"
 	default n
