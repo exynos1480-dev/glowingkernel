@@ -233,3 +233,4 @@ obj-y += usb/typec/manager/
 obj-y += usb/typec/slsi/common/
 obj-y += usb/typec/slsi/s2mf301/
 obj-y += usb/typec/sm/sm5714/
+obj-y += sdp/
