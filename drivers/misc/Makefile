@@ -65,3 +65,6 @@ obj-$(CONFIG_VCPU_STALL_DETECTOR)	+= vcpu_stall_detector.o
 obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
 obj-y               		+= samsung/
 obj-$(CONFIG_SAMSUNG_TUI)   	+= tui/
+# TEEGRIS kernel driver
+ccflags-$(CONFIG_TZDEV) 	+= -I$(srctree)/drivers/misc/tzdev/include
+obj-$(CONFIG_TZDEV)     	+= tzdev/
