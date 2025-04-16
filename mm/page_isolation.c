@@ -16,6 +16,13 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/page_isolation.h>
 
+#ifdef CONFIG_HPA
+static struct page *has_unmovable_pages(unsigned long start_pfn, unsigned long end_pfn,
+				int migratetype, int flags)
+{
+	return NULL;
+}
+#else
 /*
  * This function checks whether the range [start_pfn, end_pfn) includes
  * unmovable pages or not. The range must fall into a single pageblock and
@@ -139,6 +146,7 @@ static struct page *has_unmovable_pages(unsigned long start_pfn, unsigned long e
 	}
 	return NULL;
 }
+#endif
 
 /*
  * This function set pageblock migratetype to isolate if no unmovable page is

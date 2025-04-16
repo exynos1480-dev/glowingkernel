@@ -1247,6 +1247,12 @@ config LOCK_MM_AND_FIND_VMA
 
 source "mm/damon/Kconfig"
 
+config HPA
+	bool "High-order Pages Allocator"
+	select CMA
+	help
+	  Turns on High-order Pages Allocator based on page migration.
+
 endmenu
 
 source "mm/sec_mm/Kconfig"
