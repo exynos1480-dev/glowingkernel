@@ -34,3 +34,4 @@ obj-y += xilinx/
 obj-$(CONFIG_VIDEO_MEM2MEM_DEINTERLACE)	+= m2m-deinterlace.o
 obj-$(CONFIG_VIDEO_MUX)			+= video-mux.o
 obj-$(CONFIG_VIDEO_EXYNOS_SCALER)	+= exynos/scaler/
+obj-$(CONFIG_VIDEO_EXYNOS_SMFC)		+= exynos/smfc/
