@@ -879,4 +879,6 @@ source "drivers/leds/trigger/Kconfig"
 comment "Simple LED drivers"
 source "drivers/leds/simple/Kconfig"
 
+source "drivers/leds/samsung/Kconfig"
+
 endif # NEW_LEDS

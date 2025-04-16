@@ -110,3 +110,6 @@ obj-y					+= blink/
 
 # Simple LED drivers
 obj-y					+= simple/
+
+# Samsung Led Drives
+obj-$(CONFIG_FLED_SAMSUNG_IFPMIC)	+= samsung/
