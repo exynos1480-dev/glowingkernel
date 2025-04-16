@@ -1122,6 +1122,8 @@ static void *new_read(struct dm_bufio_client *c, sector_t block,
 	if (b->read_error) {
 		int error = blk_status_to_errno(b->read_error);
 
+		DMERR("Buffer I/O error with read_error %u for sector %llu, need_submit %d\n",
+		(u32)b->read_error, block, need_submit);
 		dm_bufio_release(b);
 
 		return ERR_PTR(error);

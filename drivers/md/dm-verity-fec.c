@@ -417,10 +417,38 @@ static int fec_decode_rsb(struct dm_verity *v, struct dm_verity_io *io,
 	return 0;
 }
 
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC) || defined(CONFIG_DEBUG_DM_VERITY_FAIL)
+static void print_memory(u32 *mem, size_t size)
+{
+	int i;
+	if (mem == NULL) {
+		DMERR_LIMIT("%s: dump failed, invalid ptr", __func__);
+		return;
+	}
+	if (size % 4 != 0) {
+		DMERR_LIMIT("%s: dump failed, invalid size", __func__);
+		return;
+	}
+	for (i = 0; i < size / sizeof(u32); i += 4)
+		pr_err("%p(%03X):#$#: %08X %08X %08X %08X\n",
+			mem+i, i*4, mem[i], mem[i+1], mem[i+2], mem[i+3]);
+}
+#endif
+
 static int fec_bv_copy(struct dm_verity *v, struct dm_verity_io *io, u8 *data,
 		       size_t len)
 {
 	struct dm_verity_fec_io *fio = fec_io(io);
+
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC)
+	DMERR_LIMIT("%s: [FEC] DUMP: data: len: 0x%zX", v->data_dev->name, len);
+	DMERR_LIMIT("%s: [FEC] real dump start: %p", v->data_dev->name, data);
+	print_memory((u32 *)data, len);
+	DMERR_LIMIT("%s: [FEC] real dump end", v->data_dev->name);
+	DMERR_LIMIT("%s: [FEC] want dump start: %p", v->data_dev->name, &fio->output[fio->output_pos]);
+	print_memory((u32 *)&fio->output[fio->output_pos], len);
+	DMERR_LIMIT("%s: [FEC] want dump end", v->data_dev->name);
+#endif
 
 	memcpy(data, &fio->output[fio->output_pos], len);
 	fio->output_pos += len;
@@ -439,6 +467,10 @@ int verity_fec_decode(struct dm_verity *v, struct dm_verity_io *io,
 	int r;
 	struct dm_verity_fec_io *fio = fec_io(io);
 	u64 offset, res, rsb;
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC)
+	u8 *real_hash;
+	u8 *want_hash;
+#endif
 
 	if (!verity_fec_is_enabled(v))
 		return -EOPNOTSUPP;
@@ -472,6 +504,15 @@ int verity_fec_decode(struct dm_verity *v, struct dm_verity_io *io,
 	 */
 	rsb = offset - res * (v->fec->rounds << v->data_dev_block_bits);
 
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC)
+	real_hash = verity_io_real_digest(v, io);
+	want_hash = verity_io_want_digest(v, io);
+	DMERR_LIMIT("%s: [FEC] digest_size: %d", v->data_dev->name, v->digest_size);
+	DMERR_LIMIT("%s: [FEC] real_hash: %p", v->data_dev->name, real_hash);
+	print_memory((u32 *)real_hash, v->digest_size);
+	DMERR_LIMIT("%s: [FEC] want_hash: %p", v->data_dev->name, want_hash);
+	print_memory((u32 *)want_hash, v->digest_size);
+#endif
 	/*
 	 * Locating erasures is slow, so attempt to recover the block without
 	 * them first. Do a second attempt with erasures if the corruption is
@@ -484,8 +525,30 @@ int verity_fec_decode(struct dm_verity *v, struct dm_verity_io *io,
 			goto done;
 	}
 
-	if (dest)
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC)
+	DMERR_LIMIT("[FEC] major: %d", v->data_dev->bdev->bd_disk->major);
+	DMERR_LIMIT("[FEC] first_minor: %d", v->data_dev->bdev->bd_disk->first_minor);
+	DMERR_LIMIT("[FEC] minors: %d", v->data_dev->bdev->bd_disk->minors);
+	DMERR_LIMIT("[FEC] disk_name: %s", v->data_dev->bdev->bd_disk->disk_name);
+	DMERR_LIMIT("%s: [FEC] block: 0x%llX", v->data_dev->name, block);
+
+	DMERR_LIMIT("%s: [FEC] salt_size: %d", v->data_dev->name, v->salt_size);
+	DMERR_LIMIT("%s: [FEC] salt: %p", v->data_dev->name, v->salt);
+	print_memory((u32 *)v->salt, v->salt_size);
+#endif
+
+	if (dest) {
+#if defined(CONFIG_DEBUG_DM_VERITY_FEC)
+		DMERR_LIMIT("%s: [FEC] DUMP: metadata: len: 0x%X", v->data_dev->name, 1 << v->data_dev_block_bits);
+		DMERR_LIMIT("%s: [FEC] real dump start: %p", v->data_dev->name, dest);
+		print_memory((u32 *)dest, 1 << v->data_dev_block_bits);
+		DMERR_LIMIT("%s: [FEC] real dump end", v->data_dev->name);
+		DMERR_LIMIT("%s: [FEC] want dump start: %p", v->data_dev->name, fio->output);
+		print_memory((u32 *)fio->output, 1 << v->data_dev_block_bits);
+		DMERR_LIMIT("%s: [FEC] want dump end", v->data_dev->name);
+#endif
 		memcpy(dest, fio->output, 1 << v->data_dev_block_bits);
+	}
 	else if (iter) {
 		fio->output_pos = 0;
 		r = verity_for_bv_block(v, io, iter, fec_bv_copy);
@@ -495,6 +558,59 @@ done:
 	fio->level--;
 	return r;
 }
+
+#if defined(CONFIG_DEBUG_DM_VERITY_FAIL)
+static int fec_bv_log(struct dm_verity *v, struct dm_verity_io *io, u8 *data,
+		      size_t len)
+{
+	struct dm_verity_fec_io *fio = fec_io(io);
+
+	DMERR_LIMIT("%s: [DMV] DUMP: data: len: 0x%zX", v->data_dev->name, len);
+	DMERR_LIMIT("%s: [DMV] real dump start: %p", v->data_dev->name, data);
+	print_memory((u32 *)data, len);
+	DMERR_LIMIT("%s: [DMV] real dump end", v->data_dev->name);
+	fio->output_pos += len;
+
+	return 0;
+}
+
+void verity_dump_memory(struct dm_verity *v, struct dm_verity_io *io,
+			enum verity_block_type type, sector_t block,
+			u8 *dest, struct bvec_iter *iter)
+{
+	struct dm_verity_fec_io *fio = fec_io(io);
+	u8 *real_hash;
+	u8 *want_hash;
+
+	real_hash = verity_io_real_digest(v, io);
+	want_hash = verity_io_want_digest(v, io);
+	DMERR_LIMIT("%s: [DMV] digest_size: %d", v->data_dev->name, v->digest_size);
+	DMERR_LIMIT("%s: [DMV] real_hash: %p", v->data_dev->name, real_hash);
+	print_memory((u32 *)real_hash, 32);
+	DMERR_LIMIT("%s: [DMV] want_hash: %p", v->data_dev->name, want_hash);
+	print_memory((u32 *)want_hash, 32);
+
+	DMERR_LIMIT("[DMV] major: %d", v->data_dev->bdev->bd_disk->major);
+	DMERR_LIMIT("[DMV] first_minor: %d", v->data_dev->bdev->bd_disk->first_minor);
+	DMERR_LIMIT("[DMV] minors: %d", v->data_dev->bdev->bd_disk->minors);
+	DMERR_LIMIT("[DMV] disk_name: %s", v->data_dev->bdev->bd_disk->disk_name);
+	DMERR_LIMIT("%s: [DMV] block: 0x%llX", v->data_dev->name, block);
+
+	DMERR_LIMIT("%s: [DMV] salt_size: %d", v->data_dev->name, v->salt_size);
+	DMERR_LIMIT("%s: [DMV] salt: %p", v->data_dev->name, v->salt);
+	print_memory((u32 *)v->salt, v->salt_size);
+
+	if (dest) {
+		DMERR_LIMIT("%s: [DMV] DUMP: metadata: len: 0x%X", v->data_dev->name, 1 << v->data_dev_block_bits);
+		DMERR_LIMIT("%s: [DMV] real dump start: %p", v->data_dev->name, dest);
+		print_memory((u32 *)dest, 1 << v->data_dev_block_bits);
+		DMERR_LIMIT("%s: [DMV] real dump end", v->data_dev->name);
+	} else if (iter) {
+		fio->output_pos = 0;
+		verity_for_bv_block(v, io, iter, fec_bv_log);
+	}
+}
+#endif
 
 /*
  * Clean up per-bio data.

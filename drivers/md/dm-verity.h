@@ -17,6 +17,9 @@
 #include <linux/interrupt.h>
 #include <crypto/hash.h>
 
+#undef CONFIG_DEBUG_DM_VERITY_FEC
+#define CONFIG_DEBUG_DM_VERITY_FAIL
+
 #define DM_VERITY_MAX_LEVELS		63
 
 enum verity_mode {
@@ -136,5 +139,11 @@ extern bool dm_is_verity_target(struct dm_target *ti);
 extern int dm_verity_get_mode(struct dm_target *ti);
 extern int dm_verity_get_root_digest(struct dm_target *ti, u8 **root_digest,
 				     unsigned int *digest_size);
+
+#if defined(CONFIG_DEBUG_DM_VERITY_FAIL)
+void verity_dump_memory(struct dm_verity *v, struct dm_verity_io *io,
+			enum verity_block_type type, sector_t block,
+			u8 *dest, struct bvec_iter *iter);
+#endif
 
 #endif /* DM_VERITY_H */
