@@ -26,7 +26,7 @@
 #include <soc/samsung/exynos-pmu-if.h>
 #include <trace/hooks/traps.h>
 #include "debug-snapshot-local.h"
-#include "printk_ringbuffer.h"
+#include "../../../../../kernel/printk/printk_ringbuffer.h"
 #include "debug-snapshot-s3c2410-wdt.h"
 
 #if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
