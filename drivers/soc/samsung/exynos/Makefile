@@ -72,6 +72,9 @@ obj-$(CONFIG_EXYNOS_MEMORY_LOGGER)	+= memlogger.o
 # Subsystem
 obj-$(CONFIG_EXYNOS_SYSTEM_EVENT)	+= sysevent.o sysevent_notif.o
 
+# HDCP
+obj-$(CONFIG_EXYNOS_HDCP2)		+= exynos-hdcp/
+
 # secmem
 obj-$(CONFIG_EXYNOS_CONTENT_PATH_PROTECTION) += secmem.o
 
