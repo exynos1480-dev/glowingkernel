@@ -7,3 +7,4 @@ obj-$(CONFIG_HARDENING_TEST)            += hardening/
 obj-$(CONFIG_MUIC_SAMSUNG_IFPMIC)	+= ifconn/
 obj-$(CONFIG_SAMSUNG_KIC)               += kic/
 obj-$(CONFIG_MUIC_SAMSUNG_IFPMIC)	+= muic/
+obj-$(CONFIG_SCSC_CORE)			+= scsc/
