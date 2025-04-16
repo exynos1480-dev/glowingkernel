@@ -1524,4 +1524,26 @@ config REGULATOR_QCOM_LABIBB
 	  boost regulator and IBB can be used as a negative boost regulator
 	  for LCD display panel.
 
+config REGULATOR_SAMSUNG_PMIC
+	tristate "Samsung PMIC regulator"
+	depends on I2C
+	help
+	 This driver supports a Samsung PMIC regulator.
+
+config REGULATOR_S2MPU15_8845
+	tristate "Samsung S2MPU15 voltage regulator for s5e8845"
+	depends on MFD_S2MPU15_8845
+	help
+	  This driver supports a Samsung S2MPU15 voltage output regulator
+	  via I2C bus. S2MPU15 is comprised of high efficient Buck converters
+	  including Dual-Phase Buck converter, Buck-Boost converter, various LDOs.
+
+config REGULATOR_S2MPU16_8845
+	tristate "Samsung S2MPU16 voltage regulator for s5e8845"
+	depends on MFD_S2MPU16_8845
+	help
+	  This driver supports a Samsung S2MPA05 voltage output regulator
+	  via I2C bus. S2MPA05 is comprised of high efficient Buck converters
+	  including Dual-Phase Buck converter, Buck-Boost converter, various LDOs.
+
 endif
