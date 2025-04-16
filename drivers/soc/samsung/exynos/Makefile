@@ -66,6 +66,9 @@ obj-$(CONFIG_EXYNOS_MCINFO)             += exynos-mcinfo.o
 # SDM
 obj-$(CONFIG_EXYNOS_SDM)		+= exynos-sdm.o
 
+# Memlogger
+obj-$(CONFIG_EXYNOS_MEMORY_LOGGER)	+= memlogger.o
+
 # Image Loader
 obj-$(CONFIG_EXYNOS_IMGLOADER)		+= imgloader.o
 

@@ -210,6 +210,16 @@ config EXYNOS_SDM
 	help
 	  Exynos Security Dump Manager
 
+config EXYNOS_MEMORY_LOGGER
+	tristate "Exynos Memory Logger"
+	default n
+	help
+	  Exynos Memory Logger API is provided by memlog driver.
+
+	  Memlog means exynos memory Logger driver. The memlog provides
+	  the logging method desired by each driver in memory for debugging,
+	  memlog provides APIs for memory logging.
+
 config EXYNOS_IMGLOADER
 	tristate "Exynos Image Loader"
 	default n
