@@ -1238,3 +1238,5 @@ config LOCK_MM_AND_FIND_VMA
 source "mm/damon/Kconfig"
 
 endmenu
+
+source "mm/sec_mm/Kconfig"
