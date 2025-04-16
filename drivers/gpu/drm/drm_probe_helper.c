@@ -249,7 +249,7 @@ void drm_kms_helper_poll_enable(struct drm_device *dev)
 	struct drm_connector_list_iter conn_iter;
 	unsigned long delay = DRM_OUTPUT_POLL_PERIOD;
 
-	if (drm_WARN_ON_ONCE(dev, !dev->mode_config.poll_enabled) ||
+	if (!dev->mode_config.poll_enabled ||
 	    !drm_kms_helper_poll || dev->mode_config.poll_running)
 		return;
 
@@ -835,7 +835,7 @@ EXPORT_SYMBOL(drm_kms_helper_is_poll_worker);
  */
 void drm_kms_helper_poll_disable(struct drm_device *dev)
 {
-	if (drm_WARN_ON(dev, !dev->mode_config.poll_enabled))
+	if (!dev->mode_config.poll_enabled)
 		return;
 
 	cancel_delayed_work_sync(&dev->mode_config.output_poll_work);
