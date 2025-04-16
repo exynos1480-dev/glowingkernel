@@ -278,3 +278,8 @@ obj-$(CONFIG_MFD_ATC260X_I2C)	+= atc260x-i2c.o
 
 obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu_i2c.o rsmu_core.o
 obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu_spi.o rsmu_core.o
+
+obj-$(CONFIG_MFD_S2MPU15_8845)		+= s2mpu15_mfd.o
+s2mpu15_mfd-$(CONFIG_MFD_S2MPU15_8845)	+= s2mpu15_core.o s2mpu15_irq.o
+obj-$(CONFIG_MFD_S2MPU16_8845)		+= s2mpu16_mfd.o
+s2mpu16_mfd-$(CONFIG_MFD_S2MPU16_8845)	+= s2mpu16_core.o s2mpu16_notifier.o
