@@ -834,6 +834,22 @@ config MMC_DW_EXYNOS
 	  Synopsys DesignWare Memory Card Interface driver. Select this option
 	  for platforms based on Exynos4 and Exynos5 SoC's.
 
+config MMC_DW_DEBUG
+	tristate "Samsung DWMCI debug feature"
+	depends on MMC_DW
+	help
+	  This selects support for information logging for debugging.
+	  Select this option if this feature is needed on working.
+
+config MMC_DW_EXYNOS_DUMP_TO_CONSOLE
+	tristate "EXYNOS specific dump to console to MMC controller platform driver"
+	depends on MMC_DW_DEBUG && (ARCH_EXYNOS || COMPILE_TEST)
+	help
+	  This selects dumping and printing debuggin information of the EXYNOS
+	  specific additions to MMC platform driver.
+	  Select this if you have MMC host controller on EXYNOS chipset.
+	  If unsure, say N.
+
 config MMC_DW_HI3798CV200
 	tristate "Hi3798CV200 specific extensions for Synopsys DW Memory Card Interface"
 	depends on MMC_DW
@@ -1114,3 +1130,11 @@ config MMC_LITEX
 	  module will be called litex_mmc.
 
 	  If unsure, say N.
+
+config SEC_MMC_FEATURE
+	bool "SEC specific MMC/SD feature"
+	depends on MMC_DW
+	help
+	  Enable Samsung MMC/SD feature support.
+	  Enabling this allows kernel to use SEC specific feature
+	  defined and implemented by SEC.
