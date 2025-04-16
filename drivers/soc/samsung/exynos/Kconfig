@@ -123,5 +123,11 @@ config EXYNOS_SSP
 	help
 	  Support Samsung Secure Platform
 
+config EXYNOS_PMU_IF
+	tristate "Exynos PMU controller Interface driver"
+	help
+	Support PMU register API for Exynos SoC.
+	select EXYNOS_PMU_ARM_DRIVERS if ARM && ARCH_EXYNOS
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
