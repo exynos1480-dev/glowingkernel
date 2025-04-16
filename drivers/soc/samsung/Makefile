@@ -37,4 +37,7 @@ obj-$(CONFIG_EXYNOS_SCI)		+= exynos_sci.o
 exynos_sci-$(CONFIG_EXYNOS_SCI)		+= exynos-sci.o
 exynos_sci-$(CONFIG_EXYNOS_LLCGOV)	+= exynos-llcgov.o
 
+# Exynos User Frequency & Cstate Control
+obj-$(CONFIG_EXYNOS_UFCC)	+= exynos-ufcc.o
+
 obj-$(CONFIG_SOC_SAMSUNG)       += exynos/

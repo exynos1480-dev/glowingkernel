@@ -185,4 +185,11 @@ config EXYNOS_LLCGOV
 	help
 	Enable exynos sci governor support
 
+config EXYNOS_UFCC
+	tristate "User Frequency & C-state Control"
+	depends on EXYNOS_CPUPM
+	default n
+	help
+	  Control Frequency & C-state by user
+
 source "drivers/soc/samsung/exynos/Kconfig"
