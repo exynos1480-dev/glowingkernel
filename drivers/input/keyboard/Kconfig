@@ -828,4 +828,13 @@ config KEYBOARD_CYPRESS_SF
 	  To compile this driver as a module, choose M here: the
 	  module will be called cypress-sf.
 
+config KEYBOARD_SAMSUNG_PMIC
+	depends on I2C
+	tristate "Samsung Electronics PMIC Powerkey/Vol-down Controller"
+
+config KEYBOARD_S2MPU15_8845
+	tristate "Samsung Electronics S2MPU15 Powerkey/Vol-down Controller for s5e8845"
+	depends on I2C
+	depends on MFD_S2MPU15_8845
+
 endif
