@@ -1996,4 +1996,22 @@ config RTC_DRV_POLARFIRE_SOC
 	  This driver can also be built as a module, if so, the module
 	  will be called "rtc-mpfs".
 
+config RTC_SAMSUNG_PMIC
+	tristate "Samsung PMIC COMMON RTC"
+	depends on I2C
+	help
+	  If you say yes here you will get support for the
+	  RTC of Samsung PMIC series.
+	  This driver can also be built as a module. If so, the module
+	  will be called RTC_SAMSUNG_PMIC.
+
+config RTC_DRV_S2MPU15_8845
+	tristate "Samsung PMIC S2MPU15 RTC for 8845"
+	depends on MFD_S2MPU15_8845
+	help
+	  If you say yes here you will get support for the
+	  RTC of Samsung PMIC series.
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-s2mpu15.
+
 endif # RTC_CLASS
