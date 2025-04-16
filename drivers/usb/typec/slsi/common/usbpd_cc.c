@@ -184,19 +184,6 @@ void role_swap_check(struct work_struct *wk)
 {
 	struct delayed_work *delay_work =
 		container_of(wk, struct delayed_work, work);
-#if IS_ENABLED(CONFIG_PDIC_S2MU004)
-	struct s2mu004_usbpd_data *usbpd_data =
-		container_of(delay_work, struct s2mu004_usbpd_data, role_swap_work);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU106)
-	struct s2mu106_usbpd_data *usbpd_data =
-		container_of(delay_work, struct s2mu106_usbpd_data, role_swap_work);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU205)
-	struct s2mu205_usbpd_data *usbpd_data =
-		container_of(delay_work, struct s2mu205_usbpd_data, role_swap_work);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU107)
-	struct s2mu107_usbpd_data *usbpd_data =
-		container_of(delay_work, struct s2mu107_usbpd_data, role_swap_work);
-#endif
 	int mode = 0;
 
 	usbpd_info("%s: pdic_set_dual_role check again.\n", __func__);
@@ -217,15 +204,6 @@ static int pdic_set_dual_role(struct dual_role_phy_instance *dual_role,
 				   enum dual_role_property prop,
 				   const unsigned int *val)
 {
-#if IS_ENABLED(CONFIG_PDIC_S2MU004)
-	struct s2mu004_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU106)
-	struct s2mu106_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU205)
-	struct s2mu205_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU107)
-	struct s2mu107_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#endif
 	struct i2c_client *i2c;
 
 	USB_STATUS attached_state;
@@ -328,15 +306,6 @@ int dual_role_get_local_prop(struct dual_role_phy_instance *dual_role,
 				    enum dual_role_property prop,
 				    unsigned int *val)
 {
-#if IS_ENABLED(CONFIG_PDIC_S2MU004)
-	struct s2mu004_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU106)
-	struct s2mu106_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU205)
-	struct s2mu205_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#elif IS_ENABLED(CONFIG_PDIC_S2MU107)
-	struct s2mu107_usbpd_data *usbpd_data = dual_role_get_drvdata(dual_role);
-#endif
 
 	USB_STATUS attached_state;
 	int power_role_dual;
@@ -413,15 +382,6 @@ int dual_role_set_prop(struct dual_role_phy_instance *dual_role,
 
 int dual_role_init(void *_data)
 {
-#if IS_ENABLED(CONFIG_PDIC_S2MU004)
-	struct s2mu004_usbpd_data *pdic_data = _data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU106)
-	struct s2mu106_usbpd_data *pdic_data = _data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU205)
-	struct s2mu205_usbpd_data *pdic_data = _data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU107)
-	struct s2mu107_usbpd_data *pdic_data = _data;
-#endif
 	struct dual_role_phy_desc *desc;
 	struct dual_role_phy_instance *dual_role;
 
@@ -483,15 +443,7 @@ int typec_port_type_set(const struct typec_capability *cap, enum typec_port_type
 		usbpd_err("%s : pd_data is null\n", __func__);
 		return -EINVAL;
 	} else {
-#if IS_ENABLED(CONFIG_PDIC_S2MU004)
-		struct s2mu004_usbpd_data *usbpd_data = (struct s2mu004_usbpd_data *)pd_data->phy_driver_data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU106)
-		struct s2mu106_usbpd_data *usbpd_data = (struct s2mu106_usbpd_data *)pd_data->phy_driver_data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU205)
-		struct s2mu205_usbpd_data *usbpd_data = (struct s2mu205_usbpd_data *)pd_data->phy_driver_data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MU107)
-		struct s2mu107_usbpd_data *usbpd_data = (struct s2mu107_usbpd_data *)pd_data->phy_driver_data;
-#elif IS_ENABLED(CONFIG_PDIC_S2MF301)
+#if IS_ENABLED(CONFIG_PDIC_S2MF301)
 		struct s2mf301_usbpd_data *usbpd_data = (struct s2mf301_usbpd_data *)pd_data->phy_driver_data;
 #endif
 		int timeout = 0;
