@@ -68,3 +68,5 @@ obj-$(CONFIG_SAMSUNG_TUI)   	+= tui/
 # TEEGRIS kernel driver
 ccflags-$(CONFIG_TZDEV) 	+= -I$(srctree)/drivers/misc/tzdev/include
 obj-$(CONFIG_TZDEV)     	+= tzdev/
+# Makefile for the Dev-Ril-Bridge driver
+obj-$(CONFIG_DEV_RIL_BRIDGE) 	+= dev_ril_bridge.o
