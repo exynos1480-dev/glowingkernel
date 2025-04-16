@@ -33,6 +33,10 @@
 #include <linux/usb/typec/slsi/common/usbpd.h>
 #include <linux/usb/typec/slsi/common/usbpd_log.h>
 
+#if IS_ENABLED(CONFIG_PDIC_S2MF301)
+#include <linux/usb/typec/slsi/s2mf301/usbpd-s2mf301.h>
+#endif
+
 #if IS_ENABLED(CONFIG_SUPPORT_USB_TYPEC_OPS)
 static int typec_dr_set(struct typec_port *_port, enum typec_data_role role);
 static int typec_pr_set(struct typec_port *_port, enum typec_role role);
