@@ -168,4 +168,21 @@ config EXYNOS_AFM
 	help
 	  Enable AFM handler for Exynos SoC.
 
+config EXYNOS_SCI
+	tristate "EXYNOS SCI interface driver support"
+	help
+	Enable exynos sci interface driver support
+
+config EXYNOS_SCI_DBG
+	tristate "EXYNOS SCI DBG interface driver support"
+	depends on EXYNOS_SCI
+	help
+	Enable exynos sci debug interface driver support
+
+config EXYNOS_LLCGOV
+	tristate "EXYNOS SCI governor support"
+	depends on EXYNOS_SCI
+	help
+	Enable exynos sci governor support
+
 source "drivers/soc/samsung/exynos/Kconfig"

@@ -32,4 +32,9 @@ obj-$(CONFIG_EXYNOS_IDLE_LAT)	+= exynos-idle-lat.o
 # AFM
 obj-$(CONFIG_EXYNOS_AFM)        += exynos-afm.o
 
+# SCI
+obj-$(CONFIG_EXYNOS_SCI)		+= exynos_sci.o
+exynos_sci-$(CONFIG_EXYNOS_SCI)		+= exynos-sci.o
+exynos_sci-$(CONFIG_EXYNOS_LLCGOV)	+= exynos-llcgov.o
+
 obj-$(CONFIG_SOC_SAMSUNG)       += exynos/
