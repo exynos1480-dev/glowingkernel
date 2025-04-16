@@ -154,4 +154,11 @@ config EXYNOS_CPUHP
 	help
 	  Support CPU Hotplug interface for Exynos SoC.
 
+config EXYNOS_IDLE_LAT
+	tristate "Exynos CPUIDLE latency test support"
+	depends on ARCH_EXYNOS && SCHED_EMS
+	default n
+	help
+	  Support Exynos CPUIDLE latency test.
+
 source "drivers/soc/samsung/exynos/Kconfig"
