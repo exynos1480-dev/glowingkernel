@@ -502,6 +502,9 @@ SkipForAbort:
 			/* Allow USB transfers to resume */
 			clear_bit(US_FLIDX_ABORTING, &us->dflags);
 			clear_bit(US_FLIDX_TIMED_OUT, &us->dflags);
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+			pr_err("usb_storage: %s clear TIMED_OUT\n", __func__);
+#endif
 		}
 
 		/* finished working on this command */
@@ -1182,8 +1185,17 @@ void usb_stor_disconnect(struct usb_interface *intf)
 {
 	struct us_data *us = usb_get_intfdata(intf);
 
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+	pr_info("%s enter\n", __func__);
+#endif
 	quiesce_and_remove_host(us);
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+	pr_info("%s doing\n", __func__);
+#endif
 	release_everything(us);
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+	pr_info("%s exit\n", __func__);
+#endif
 }
 EXPORT_SYMBOL_GPL(usb_stor_disconnect);
 

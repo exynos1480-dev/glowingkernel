@@ -41,7 +41,6 @@
 #include "usb.h"
 #include "phy.h"
 
-
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -76,6 +75,8 @@
  */
 
 /*-------------------------------------------------------------------------*/
+struct usb_hcd *xhci_exynos_hcd;
+struct phy *xhci_exynos_phy;
 
 /* Keep track of which host controller drivers are loaded */
 unsigned long usb_hcds_loaded;
@@ -2596,6 +2597,16 @@ struct usb_hcd *__usb_create_hcd(const struct hc_driver *driver,
 		}
 		mutex_init(hcd->bandwidth_mutex);
 		dev_set_drvdata(dev, hcd);
+
+		if (!strcmp("xhci-hcd", driver->description)) {
+			dev_info(dev, "xhci-hcd detected\n");
+			xhci_exynos_hcd = hcd;
+			xhci_exynos_phy = devm_phy_get(dev->parent, "usb2-phy");
+			if (IS_ERR_OR_NULL(xhci_exynos_phy)) {
+				xhci_exynos_phy = NULL;
+				dev_err(dev, "%s: failed to get phy\n", __func__);
+			}
+		}
 	} else {
 		mutex_lock(&usb_port_peer_mutex);
 		hcd->address0_mutex = primary_hcd->address0_mutex;
@@ -2970,6 +2981,7 @@ int usb_add_hcd(struct usb_hcd *hcd,
 		retval = usb_hcd_request_irqs(hcd, irqnum, irqflags);
 		if (retval)
 			goto err_request_irq;
+		irq_set_affinity_hint(hcd->irq, cpumask_of(0x1));
 	}
 
 	hcd->state = HC_STATE_RUNNING;
@@ -3085,8 +3097,10 @@ void usb_remove_hcd(struct usb_hcd *hcd)
 	usb_stop_hcd(hcd);
 
 	if (usb_hcd_is_primary_hcd(hcd)) {
-		if (hcd->irq > 0)
+		if (hcd->irq > 0) {
+			irq_set_affinity_hint(hcd->irq, NULL);
 			free_irq(hcd->irq, hcd);
+		}
 	}
 
 	usb_deregister_bus(&hcd->self);
