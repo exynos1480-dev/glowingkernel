@@ -110,4 +110,35 @@ config EXYNOS_REGULATOR_COUPLER
 	depends on ARCH_EXYNOS || COMPILE_TEST
 endif
 
+config EXYNOS_BCM_DBG
+	tristate "EXYNOS_BCM_DBG driver support"
+	help
+	  Enable exynos-bcm_dbg driver support
+
+config EXYNOS_BCM_DBG_GNR
+	tristate "EXYNOS_BCM_DBG_GNR driver support"
+	help
+	  Enable exynos-bcm_dbg driver support
+
+config EXYNOS_BCM_TIME_SYNC
+	depends on EXYNOS_BCM_DBG
+	default n
+	bool "EXYNOS_BCM_TIME_SYNC support"
+	help
+	  Enable exynos-bcm_dbg time sync support
+
+config EXYNOS_BCM_DBG_AUTO
+	tristate "EXYNOS_BCM_DBG_AUTO support"
+	default n
+	depends on EXYNOS_BCM_DBG
+	depends on !(USE_SIGNED_BINARY)
+	help
+	  Enable exynos-bcm_dbg_auto support
+
+config EXYNOS_BCM_DBG_DUMP
+	tristate "EXYNOS_BCM_DBG dump support"
+	depends on EXYNOS_BCM_DBG
+	help
+	  Enable exynos-bcm_dbg dump support
+
 source "drivers/soc/samsung/exynos/Kconfig"
