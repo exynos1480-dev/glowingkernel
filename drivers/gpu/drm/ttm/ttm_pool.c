@@ -87,9 +87,10 @@ static struct page *ttm_pool_alloc_page(struct ttm_pool *pool, gfp_t gfp_flags,
 	 * Mapping pages directly into an userspace process and calling
 	 * put_page() on a TTM allocated page is illegal.
 	 */
-	if (order)
-		gfp_flags |= __GFP_NOMEMALLOC | __GFP_NORETRY | __GFP_NOWARN |
-			__GFP_KSWAPD_RECLAIM;
+	if (order) {
+		gfp_flags |= __GFP_NOMEMALLOC | __GFP_NORETRY | __GFP_NOWARN;
+		gfp_flags &= ~__GFP_RECLAIM;
+	}
 
 	if (!pool->use_dma_alloc) {
 		p = alloc_pages(gfp_flags, order);

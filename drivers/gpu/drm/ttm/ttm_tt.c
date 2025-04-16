@@ -105,12 +105,20 @@ int ttm_tt_create(struct ttm_buffer_object *bo, bool zero_alloc)
 	return 0;
 }
 
+static inline void *ttm_tt_pagedir_alloc(size_t n, size_t size)
+{
+	if (n * size > PAGE_SIZE)
+		return __vmalloc(n * size, GFP_KERNEL | __GFP_ZERO);
+
+	return kcalloc(n, size, GFP_KERNEL);
+}
+
 /*
  * Allocates storage for pointers to the pages that back the ttm.
  */
 static int ttm_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-	ttm->pages = kvcalloc(ttm->num_pages, sizeof(void*), GFP_KERNEL);
+	ttm->pages = ttm_tt_pagedir_alloc(ttm->num_pages, sizeof(void*));
 	if (!ttm->pages)
 		return -ENOMEM;
 
@@ -119,8 +127,8 @@ static int ttm_tt_alloc_page_directory(struct ttm_tt *ttm)
 
 static int ttm_dma_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-	ttm->pages = kvcalloc(ttm->num_pages, sizeof(*ttm->pages) +
-			      sizeof(*ttm->dma_address), GFP_KERNEL);
+	ttm->pages = ttm_tt_pagedir_alloc(ttm->num_pages, sizeof(*ttm->pages) +
+			      sizeof(*ttm->dma_address));
 	if (!ttm->pages)
 		return -ENOMEM;
 
@@ -130,8 +138,7 @@ static int ttm_dma_tt_alloc_page_directory(struct ttm_tt *ttm)
 
 static int ttm_sg_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-	ttm->dma_address = kvcalloc(ttm->num_pages, sizeof(*ttm->dma_address),
-				    GFP_KERNEL);
+	ttm->dma_address = ttm_tt_pagedir_alloc(ttm->num_pages, sizeof(*ttm->dma_address));
 	if (!ttm->dma_address)
 		return -ENOMEM;
 
