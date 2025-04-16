@@ -47,6 +47,10 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+#include <linux/io_record.h>
+#endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/filemap.h>
 
@@ -2756,6 +2760,11 @@ ssize_t filemap_read(struct kiocb *iocb, struct iov_iter *iter,
 	int i, error = 0;
 	bool writably_mapped;
 	loff_t isize, end_offset;
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+	pgoff_t index;
+	loff_t *ppos = &iocb->ki_pos;
+	pgoff_t last_index;
+#endif
 
 	if (unlikely(iocb->ki_pos >= inode->i_sb->s_maxbytes))
 		return 0;
@@ -2765,6 +2774,12 @@ ssize_t filemap_read(struct kiocb *iocb, struct iov_iter *iter,
 	iov_iter_truncate(iter, inode->i_sb->s_maxbytes - iocb->ki_pos);
 	folio_batch_init(&fbatch);
 	trace_android_vh_filemap_read(filp, iocb->ki_pos, iov_iter_count(iter));
+
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+	index = *ppos >> PAGE_SHIFT;
+	last_index = (*ppos + iov_iter_count(iter) + PAGE_SIZE-1) >> PAGE_SHIFT;
+	record_io_info(filp, index, last_index - index);
+#endif
 
 	do {
 		cond_resched();
@@ -3469,6 +3484,9 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
 	vm_fault_t ret = 0;
 	pgoff_t first_pgoff = 0;
 	pgoff_t orig_start_pgoff = start_pgoff;
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+	pgoff_t head_pgoff = 0;
+#endif
 
 	rcu_read_lock();
 	folio = first_map_page(mapping, &xas, end_pgoff);
@@ -3476,6 +3494,10 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
 		goto out;
 	first_pgoff = xas.xa_index;
 	orig_start_pgoff = xas.xa_index;
+
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+	head_pgoff = xas.xa_index;
+#endif
 
 	if (filemap_map_pmd(vmf, &folio->page)) {
 		ret = VM_FAULT_NOPAGE;
@@ -3531,9 +3553,13 @@ unlock:
 out:
 	rcu_read_unlock();
 	WRITE_ONCE(file->f_ra.mmap_miss, mmap_miss);
+#ifdef CONFIG_PAGE_BOOST_RECORDING
+	/* end_pgoff is inclusive */
+	if (ret == VM_FAULT_NOPAGE)
+		record_io_info(file, head_pgoff, last_pgoff - head_pgoff + 1);
+#endif
 	trace_android_vh_filemap_map_pages(file, first_pgoff, last_pgoff, ret);
 	trace_android_vh_filemap_map_pages_range(file, orig_start_pgoff, last_pgoff, ret);
-
 	return ret;
 }
 EXPORT_SYMBOL(filemap_map_pages);
