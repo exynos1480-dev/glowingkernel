@@ -32,15 +32,18 @@
 #define REG_MMU_CONTEXT0_CFG_FLPT_BASE_VM	0x8404
 #define REG_MMU_CONTEXT0_CFG_ATTRIBUTE_VM	0x8408
 
-
 #define MMU_VERSION_MAJOR(val)			((val) >> 12)
 #define MMU_VERSION_MINOR(val)			(((val) >> 8) & 0xF)
 #define MMU_VERSION_REVISION(val)		((val) & 0xFF)
 #define MMU_VERSION_RAW(reg)			(((reg) >> 16) & 0xFFFF)
+#define MMU_VERSION(x, y, z)			((z) | ((y) << 8) | ((z) << 12))
 #define MMU_VM_ADDR(reg, idx)			((reg) + ((idx) * SYSMMU_VM_OFFSET))
+#define MMU_TLB_REG(data, idx)			((data)->sfrbase + (data)->tlb_reg_set[(idx)])
 
-#define MMU_CTRL_ENABLE			0x5
-#define MMU_CTRL_DISABLE		0x0
+#define CTRL_MMU_ENABLE			BIT(0)
+#define CTRL_INT_ENABLE			BIT(2)
+#define CTRL_FAULT_STALL_MODE		BIT(3)
+#define CTRL_ERR_RESP_VALUE		BIT(5)
 
 #define MMU_STREAM_CFG_STLB_ID(val)		(((val) >> 24) & 0xFF)
 #define MMU_STREAM_CFG_PTLB_ID(val)		(((val) >> 16) & 0xFF)
@@ -59,27 +62,22 @@ typedef u32 sysmmu_pte_t;
 #define LPAGE_ORDER	16
 #define SPAGE_ORDER	12
 
-#define SECT_SIZE	(1UL << SECT_ORDER)
-#define LPAGE_SIZE	(1UL << LPAGE_ORDER)
-#define SPAGE_SIZE	(1UL << SPAGE_ORDER)
+#define SECT_SIZE	BIT(SECT_ORDER)
+#define LPAGE_SIZE	BIT(LPAGE_ORDER)
+#define SPAGE_SIZE	BIT(SPAGE_ORDER)
 
-#define SECT_MASK (~(SECT_SIZE - 1))
-#define LPAGE_MASK (~(LPAGE_SIZE - 1))
-#define SPAGE_MASK (~(SPAGE_SIZE - 1))
+#define SECT_MASK		GENMASK(63, SECT_ORDER)
+#define LPAGE_MASK		GENMASK(63, LPAGE_ORDER)
+#define SPAGE_MASK		GENMASK(63, SPAGE_ORDER)
 
-#define SECT_ENT_MASK	~((SECT_SIZE >> PG_ENT_SHIFT) - 1)
-#define LPAGE_ENT_MASK	~((LPAGE_SIZE >> PG_ENT_SHIFT) - 1)
-#define SPAGE_ENT_MASK	~((SPAGE_SIZE >> PG_ENT_SHIFT) - 1)
+#define SECT_ENT_MASK		GENMASK(63, SECT_ORDER - PG_ENT_SHIFT)
+#define LPAGE_ENT_MASK		GENMASK(63, LPAGE_ORDER - PG_ENT_SHIFT)
+#define SPAGE_ENT_MASK		GENMASK(63, SPAGE_ORDER - PG_ENT_SHIFT)
 
 #define SPAGES_PER_LPAGE	(LPAGE_SIZE / SPAGE_SIZE)
 
-#define VA_WIDTH_32BIT		0x0
-#define VA_WIDTH_36BIT		0x1
-#define NUM_LV1ENTRIES_32BIT	4096
-#define NUM_LV1ENTRIES_36BIT	65536
+#define NUM_LV1ENTRIES		65536
 #define NUM_LV2ENTRIES		(SECT_SIZE / SPAGE_SIZE)
-#define LV1TABLE_SIZE_32BIT	(NUM_LV1ENTRIES_32BIT * sizeof(sysmmu_pte_t))
-#define LV1TABLE_SIZE_36BIT	(NUM_LV1ENTRIES_36BIT * sizeof(sysmmu_pte_t))
 #define LV2TABLE_SIZE		(NUM_LV2ENTRIES * sizeof(sysmmu_pte_t))
 
 #define lv1ent_offset(iova) ((iova) >> SECT_ORDER)
@@ -100,7 +98,7 @@ typedef u32 sysmmu_pte_t;
 #define lv1ent_section(sent)	((*(sent) & FLPD_FLAG_MASK) == SECT_FLAG)
 #define lv1ent_offset(iova)	((iova) >> SECT_ORDER)
 
-#define lv2table_base(sent)	((phys_addr_t)(*(sent) & ~0x3FU) << PG_ENT_SHIFT)
+#define lv2table_base(sent)	((phys_addr_t)(*(sent) & ~0x3F) << PG_ENT_SHIFT)
 #define lv2ent_unmapped(pent)	((*(pent) & SLPD_FLAG_MASK) == UNMAPPED_FLAG)
 #define lv2ent_small(pent)	((*(pent) & SLPD_FLAG_MASK) == SPAGE_FLAG)
 #define lv2ent_large(pent)	((*(pent) & SLPD_FLAG_MASK) == LPAGE_FLAG)
@@ -124,6 +122,89 @@ static inline sysmmu_pte_t *section_entry(sysmmu_pte_t *pgtable, sysmmu_iova_t i
 {
 	return pgtable + lv1ent_offset(iova);
 }
+
+enum {
+	REG_IDX_DEFAULT = 0,
+	REG_IDX_VM,
+
+	MAX_SET_IDX,
+};
+
+enum {
+	IDX_READ_PTLB,
+	IDX_READ_PTLB_TPN,
+	IDX_READ_PTLB_PPN,
+	IDX_READ_PTLB_ATTRIBUTE,
+
+	IDX_READ_STLB,
+	IDX_READ_STLB_TPN,
+	IDX_READ_STLB_PPN,
+	IDX_READ_STLB_ATTRIBUTE,
+
+	IDX_READ_S1L1TLB,
+	IDX_READ_S1L1TLB_VPN,
+	IDX_READ_S1L1TLB_SLPT_OR_PPN,
+	IDX_READ_S1L1TLB_ATTRIBUTE,
+
+	MAX_REG_IDX,
+};
+
+static const unsigned int sysmmu_tlb_reg_set[MAX_SET_IDX][MAX_REG_IDX] = {
+	/* DEFAULT without VM */
+	{
+		/* SET, TPN, PPN, ATTRIBUTE */
+		/* PTLB information */
+		0x5000, 0x5004, 0x5008, 0x500C,
+		/* STLB information */
+		0x5010, 0x5014, 0x5018, 0x501C,
+
+		/* SET, VPN, PPN or SLPT, ATTRIBUTE */
+		/* S1L1TLB information */
+		0x5020, 0x5024, 0x5028, 0x502C,
+	},
+	/* VM */
+	{
+		/* SET, TPN, PPN, ATTRIBUTE */
+		/* PTLB information */
+		0x8800, 0x8804, 0x8808, 0x880C,
+		/* STLB information */
+		0x8810, 0x8814, 0x8818, 0x881C,
+
+		/* SET, VPN, PPN or SLPT, ATTRIBUTE */
+		/* S1L1TLB information */
+		0x8820, 0x8824, 0x8828, 0x882C,
+	},
+};
+
+#define SYSMMU_EVENT_MAX	2048
+enum sysmmu_event_type {
+	/* init value*/
+	SYSMMU_EVENT_NONE,
+	/* event for sysmmu drvdata */
+	SYSMMU_EVENT_ENABLE,
+	SYSMMU_EVENT_DISABLE,
+	SYSMMU_EVENT_POWERON,
+	SYSMMU_EVENT_POWEROFF,
+	SYSMMU_EVENT_INVALIDATE_RANGE,
+	SYSMMU_EVENT_INVALIDATE_ALL,
+	SYSMMU_EVENT_IOTLB_SYNC,
+	/* event for iommu domain */
+	SYSMMU_EVENT_MAP,
+	SYSMMU_EVENT_UNMAP,
+};
+
+struct sysmmu_log {
+	unsigned long long time;
+	enum sysmmu_event_type type;
+	u64 start;
+	u64 end;
+};
+
+struct samsung_iommu_log {
+	atomic_t index;
+	int len;
+	struct sysmmu_log *log;
+};
 
 struct stream_config {
 	unsigned int index;
@@ -151,14 +232,23 @@ struct sysmmu_drvdata {
 	u32 version;
 	u32 va_width;
 	u32 vmid_mask;
+	u32 tlb_per_vm;
 	int max_vm;
 	int num_pmmu;
+	int *num_stream_table;
+	int *num_ptlb;
 	int qos;
 	int attached_count;
+	int rpm_count;
 	int secure_irq;
 	unsigned int secure_base;
+	const unsigned int *tlb_reg_set;
 	bool async_fault_mode;
+	bool cacheable_override_mode;
+	bool initialized_sysmmu;
+	bool perf_mode;
 	struct stream_props *props;
+	struct samsung_iommu_log log;
 };
 
 struct sysmmu_clientdata {

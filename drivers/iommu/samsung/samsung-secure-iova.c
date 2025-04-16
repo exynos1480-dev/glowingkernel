@@ -12,13 +12,8 @@
 #include <linux/of.h>
 #include <linux/slab.h>
 
-#define SECURE_DMA_BASE	0x40000000
-/*
- * MFC have H/W restriction that could only access 0xC000_0000
- * offset from base, so secure device virtual address manager
- * uses the size as 0xC000_0000.
- */
-#define SECURE_DMA_SIZE 0x40000000
+#define SECURE_DMA_BASE	0x80000000
+#define SECURE_DMA_SIZE 0x10000000
 
 static struct gen_pool *secure_iova_pool;
 
@@ -117,7 +112,7 @@ static int __init samsung_secure_iova_init(void)
 		gen_pool_destroy(secure_iova_pool);
 		return ret;
 	}
-	pr_info("Add secure iova ranges %#lx-%#lx\n", base, size);
+	pr_info("Add secure iova ranges %#llx-%#llx\n", base, size);
 
 	return 0;
 }

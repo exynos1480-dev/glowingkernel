@@ -13,13 +13,46 @@
 #include <linux/interrupt.h>
 #include <linux/iommu.h>
 
+#define SYSMMU_EVENT_MAX	2048
+enum sysmmu_event_type {
+	/* init value */
+	SYSMMU_EVENT_NONE,
+	/* event for sysmmu drvdata */
+	SYSMMU_EVENT_ENABLE,
+	SYSMMU_EVENT_DISABLE,
+	SYSMMU_EVENT_POWERON,
+	SYSMMU_EVENT_POWEROFF,
+	SYSMMU_EVENT_TLB_RANGE,
+	SYSMMU_EVENT_TLB_ALL,
+	SYSMMU_EVENT_IOTLB_SYNC,
+	/* event for iommu domain */
+	SYSMMU_EVENT_MAP,
+	SYSMMU_EVENT_UNMAP,
+};
+
+struct sysmmu_log {
+	unsigned long long time;
+	enum sysmmu_event_type type;
+	u64 start;
+	u64 end;
+};
+
+struct samsung_iommu_log {
+	atomic_t index;
+	int len;
+	struct sysmmu_log *log;
+};
+
 struct tlb_config {
-	unsigned int cfg;
-	unsigned int id;
+	unsigned int index;
+	u32 cfg;
+	u32 match_cfg;
+	u32 match_id;
 };
 
 struct tlb_props {
 	int id_cnt;
+	u32 default_cfg;
 	struct tlb_config *cfg;
 };
 
@@ -33,14 +66,21 @@ struct sysmmu_drvdata {
 	phys_addr_t pgtable;
 	spinlock_t lock; /* protect atomic update to H/W status */
 	u32 version;
+	int num_tlb;
 	int qos;
 	int attached_count;
+	int rpm_count;
 	int secure_irq;
+	int max_vm;
+	int vmid_mask;
 	unsigned int secure_base;
 	const unsigned int *reg_set;
 	struct tlb_props tlb_props;
+	struct samsung_iommu_log log;
 	bool no_block_mode;
 	bool has_vcr;
+	bool async_fault_mode;
+	bool va_36bit_mode;
 };
 
 struct sysmmu_clientdata {
@@ -85,7 +125,7 @@ enum {
 #define MMU_SEC_REG(data, offset_idx)	((data)->secure_base + (data)->reg_set[offset_idx])
 #define MMU_SEC_VM_REG(data, offset_idx, vmid) (MMU_SEC_REG(data, offset_idx) + (vmid) * 0x10)
 
-typedef u32 sysmmu_iova_t;
+typedef u64 sysmmu_iova_t;
 typedef u32 sysmmu_pte_t;
 
 #define SECT_ORDER 20
@@ -106,7 +146,7 @@ typedef u32 sysmmu_pte_t;
 
 #define SPAGES_PER_LPAGE	(LPAGE_SIZE / SPAGE_SIZE)
 
-#define NUM_LV1ENTRIES	4096
+#define NUM_LV1ENTRIES	65536
 #define NUM_LV2ENTRIES (SECT_SIZE / SPAGE_SIZE)
 #define LV1TABLE_SIZE (NUM_LV1ENTRIES * sizeof(sysmmu_pte_t))
 #define LV2TABLE_SIZE (NUM_LV2ENTRIES * sizeof(sysmmu_pte_t))
@@ -161,11 +201,15 @@ static inline sysmmu_pte_t *section_entry(sysmmu_pte_t *pgtable,
 #define REG_MMU_VERSION			0x034
 #define REG_MMU_CAPA0_V7		0x870
 #define REG_MMU_CAPA1_V7		0x874
-#define REG_MMU_CTRL_VM			0x8000
-#define REG_MMU_CFG_VM			0x8004
+
+#define SYSMMU_VM_OFFSET		0x1000
+#define REG_VMID_OFFSET(offset, vmid)	((offset) + (vmid) * SYSMMU_VM_OFFSET)
+#define REG_MMU_CTRL_VM(vmid)		REG_VMID_OFFSET(0x8000, vmid)
+#define REG_MMU_CFG_VM(vmid)		REG_VMID_OFFSET(0x8004, vmid)
 
 #define MMU_CAPA_NUM_TLB_WAY(reg)	((reg) & 0xFF)
 #define MMU_CAPA_NUM_SBB_ENTRY(reg)	(((reg) >> 12) & 0xF)
+#define MMU_CAPA_NUM_PAGE_TABLE(reg)	(((reg) >> 16) & 0xF)
 #define MMU_CAPA1_EXIST(reg)		(((reg) >> 11) & 0x1)
 #define MMU_CAPA1_TYPE(reg)		(((reg) >> 28) & 0xF)
 #define MMU_CAPA1_NO_BLOCK_MODE(reg)	(((reg) >> 15) & 0x1)
@@ -177,13 +221,14 @@ static inline sysmmu_pte_t *section_entry(sysmmu_pte_t *pgtable,
 #define MMU_MIN_VER(val)	(((val) >> 4) & 0x7F)
 #define MMU_REV_VER(val)	((val) & 0xF)
 #define MMU_RAW_VER(reg)	(((reg) >> 17) & 0x7FFF)
+#define MMU_VERSION(x, y, z)	((z) | ((y) << 4) | ((x) << 11))
 
-#define CTRL_DISABLE			0x0
 #define CTRL_VID_ENABLE			0x1
-#define CTRL_BLOCK_DISABLE		0x3
-#define CTRL_ENABLE			0x5
-#define CTRL_BLOCK			0x7
-#define CTRL_FAULT_STALL_MODE		0x8
+#define CTRL_MMU_ENABLE			BIT(0)
+#define CTRL_MMU_BLOCK			BIT(1)
+#define CTRL_INT_ENABLE			BIT(2)
+#define CTRL_FAULT_STALL_MODE		BIT(3)
+#define CTRL_RESP_SLAVE_ERROR		0x20
 
 #define CFG_MASK_GLOBAL			0x00000F80 /* Bit 11, 10-7 */
 #define CFG_MASK_VM			0xB00F1004 /* Bit 31, 29, 28, 19-16, 12, 2 */

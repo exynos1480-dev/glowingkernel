@@ -12,6 +12,7 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/sched/clock.h>
 #include <linux/slab.h>
 
 #include "samsung-iommu.h"
@@ -27,11 +28,16 @@
 #define MMU_TLB_CFG_MASK(reg)		((reg) & (GENMASK(7, 5) | GENMASK(3, 2) | GENMASK(1, 1)))
 #define MMU_TLB_MATCH_CFG_MASK(reg)	((reg) & (GENMASK(31, 16) | GENMASK(9, 8)))
 
+#define MMU_CAPA1_VA_WIDTH(reg)		(((reg) >> 12) & 0x1)
+
 #define REG_MMU_TLB_CFG(n)		(0x2000 + ((n) * 0x20) + 0x4)
 #define REG_MMU_TLB_MATCH_CFG(n)	(0x2000 + ((n) * 0x20) + 0x8)
 #define REG_MMU_TLB_MATCH_ID(n)		(0x2000 + ((n) * 0x20) + 0x14)
 
 #define DEFAULT_QOS_VALUE	-1
+#define DEFAULT_VMID_MASK	0x1
+#define DEFAULT_TLB_NONE	~0U
+#define UNUSED_TLB_INDEX	~0U
 
 static const unsigned int sysmmu_reg_set[MAX_SET_IDX][MAX_REG_IDX] = {
 	/* Default without VM */
@@ -65,15 +71,41 @@ static struct platform_driver samsung_sysmmu_driver;
 
 struct samsung_sysmmu_domain {
 	struct iommu_domain domain;
+	struct samsung_iommu_log log;
 	struct iommu_group *group;
 	sysmmu_pte_t *page_table;
 	atomic_t *lv2entcnt;
 	spinlock_t pgtablelock; /* serialize races to page table updates */
 };
 
+static inline void samsung_iommu_write_event(struct samsung_iommu_log *iommu_log,
+					     enum sysmmu_event_type type,
+					     u64 start, u64 end)
+{
+	struct sysmmu_log *log;
+	unsigned int index = (unsigned int)atomic_inc_return(&iommu_log->index) - 1;
+
+	log = &iommu_log->log[index % iommu_log->len];
+	log->time = sched_clock();
+	log->type = type;
+	log->start = start;
+	log->end = end;
+}
+
+#define SYSMMU_EVENT_LOG(data, type)	samsung_iommu_write_event(&(data)->log, type, 0, 0)
+#define SYSMMU_EVENT_LOG_RANGE(data, type, s, e)	\
+					samsung_iommu_write_event(&(data)->log, type, s, e)
+
 static bool sysmmu_global_init_done;
+static DEFINE_MUTEX(sysmmu_global_mutex);
 static struct device sync_dev;
 static struct kmem_cache *flpt_cache, *slpt_cache;
+
+static inline u32 __sysmmu_get_tlb_num(struct sysmmu_drvdata *data)
+{
+	return MMU_CAPA1_NUM_TLB(readl_relaxed(data->sfrbase +
+					       REG_MMU_CAPA1_V7));
+}
 
 static inline u32 __sysmmu_get_hw_version(struct sysmmu_drvdata *data)
 {
@@ -83,6 +115,11 @@ static inline u32 __sysmmu_get_hw_version(struct sysmmu_drvdata *data)
 static inline bool __sysmmu_has_capa1(struct sysmmu_drvdata *data)
 {
 	return MMU_CAPA1_EXIST(readl_relaxed(data->sfrbase + REG_MMU_CAPA0_V7));
+}
+
+static inline int __sysmmu_get_capa_max_page_table(struct sysmmu_drvdata *data)
+{
+	return MMU_CAPA_NUM_PAGE_TABLE(readl_relaxed(data->sfrbase + REG_MMU_CAPA0_V7));
 }
 
 static inline u32 __sysmmu_get_capa_type(struct sysmmu_drvdata *data)
@@ -96,23 +133,53 @@ static inline bool __sysmmu_get_capa_no_block_mode(struct sysmmu_drvdata *data)
 						     REG_MMU_CAPA1_V7));
 }
 
+static inline u32 __sysmmu_get_capa_va_width(struct sysmmu_drvdata *data)
+{
+	return MMU_CAPA1_VA_WIDTH(readl_relaxed(data->sfrbase + REG_MMU_CAPA1_V7));
+}
+
 static inline bool __sysmmu_get_capa_vcr_enabled(struct sysmmu_drvdata *data)
 {
 	return MMU_CAPA1_VCR_ENABLED(readl_relaxed(data->sfrbase +
 						   REG_MMU_CAPA1_V7));
 }
 
+static inline void __sysmmu_write_all_vm(struct sysmmu_drvdata *data,
+					 u32 value, void __iomem *addr)
+{
+	int i;
+
+	for (i = 0; i < data->max_vm; i++) {
+		if (data->vmid_mask & (1 << i))
+			writel(value, addr + (i * SYSMMU_VM_OFFSET));
+	}
+}
+
 static inline void __sysmmu_tlb_invalidate_all(struct sysmmu_drvdata *data)
 {
-	writel(0x1, MMU_REG(data, IDX_ALL_INV));
+	__sysmmu_write_all_vm(data, 0x1, MMU_REG(data, IDX_ALL_INV));
+
+	SYSMMU_EVENT_LOG(data, SYSMMU_EVENT_TLB_ALL);
 }
 
 static inline void __sysmmu_tlb_invalidate(struct sysmmu_drvdata *data,
 					   dma_addr_t start, dma_addr_t end)
 {
-	writel_relaxed(start, MMU_REG(data, IDX_RANGE_INV_START));
-	writel_relaxed(end - 1, MMU_REG(data, IDX_RANGE_INV_END));
-	writel(0x1, MMU_REG(data, IDX_RANGE_INV));
+	u32 start_value, end_value;
+
+	if (data->va_36bit_mode) {
+		start_value = ALIGN_DOWN(start, SPAGE_SIZE) >> 4;
+		end_value = ALIGN_DOWN(end - 1, SPAGE_SIZE) >> 4;
+	} else {
+		start_value = ALIGN_DOWN(start, SPAGE_SIZE);
+		end_value = ALIGN_DOWN(end - 1, SPAGE_SIZE);
+	}
+
+	__sysmmu_write_all_vm(data, start_value, MMU_REG(data, IDX_RANGE_INV_START));
+	__sysmmu_write_all_vm(data, end_value, MMU_REG(data, IDX_RANGE_INV_END));
+	__sysmmu_write_all_vm(data, 0x1, MMU_REG(data, IDX_RANGE_INV));
+
+	SYSMMU_EVENT_LOG_RANGE(data, SYSMMU_EVENT_TLB_RANGE, start, end);
 }
 
 static inline void __sysmmu_disable(struct sysmmu_drvdata *data)
@@ -120,98 +187,79 @@ static inline void __sysmmu_disable(struct sysmmu_drvdata *data)
 	if (data->no_block_mode) {
 		__sysmmu_tlb_invalidate_all(data);
 	} else {
-		if (data->has_vcr) {
-			writel_relaxed(0, data->sfrbase + REG_MMU_CFG_VM);
-			writel_relaxed(CTRL_BLOCK_DISABLE,
-				       data->sfrbase + REG_MMU_CTRL_VM);
-		}
+		u32 ctrl_val = readl_relaxed(data->sfrbase + REG_MMU_CTRL);
 
-		writel_relaxed(0, data->sfrbase + REG_MMU_CFG);
-		writel_relaxed(CTRL_BLOCK_DISABLE,
-			       data->sfrbase + REG_MMU_CTRL);
-	}
-}
-
-static inline void __sysmmu_set_one_tlb(struct sysmmu_drvdata *data,
-					unsigned int idx)
-{
-	struct tlb_config *cfg = data->tlb_props.cfg;
-
-	writel_relaxed(MMU_TLB_CFG_MASK(cfg[idx].cfg),
-		       data->sfrbase + REG_MMU_TLB_CFG(idx));
-
-	/* idx 0 is default TLB */
-	if (idx == 0) {
-		dev_dbg(data->dev, "TLB[%d] cfg : %#x for default\n", idx,
-			MMU_TLB_CFG_MASK(cfg[idx].cfg));
-		return;
+		ctrl_val &= ~CTRL_MMU_ENABLE;
+		writel(ctrl_val | CTRL_MMU_BLOCK, data->sfrbase + REG_MMU_CTRL);
 	}
 
-	writel_relaxed(MMU_TLB_MATCH_CFG_MASK(cfg[idx].cfg),
-		       data->sfrbase + REG_MMU_TLB_MATCH_CFG(idx));
-	writel_relaxed(cfg[idx].id,
-		       data->sfrbase + REG_MMU_TLB_MATCH_ID(idx));
-
-	dev_dbg(data->dev, "TLB[%d] cfg : %#x, match : %#x, id : %#x\n",
-		idx,
-		MMU_TLB_CFG_MASK(cfg[idx].cfg),
-		MMU_TLB_MATCH_CFG_MASK(cfg[idx].cfg),
-		cfg[idx].id);
+	SYSMMU_EVENT_LOG(data, SYSMMU_EVENT_DISABLE);
 }
 
 static inline void __sysmmu_set_tlb(struct sysmmu_drvdata *data)
 {
-	u32 cfg = readl_relaxed(data->sfrbase + REG_MMU_CAPA1_V7);
-	u32 tlb_num = MMU_CAPA1_NUM_TLB(cfg);
 	struct tlb_props *tlb_props = &data->tlb_props;
+	struct tlb_config *cfg = tlb_props->cfg;
 	int id_cnt = tlb_props->id_cnt;
-	unsigned int i;
+	unsigned int i, index;
 
-	if (id_cnt > tlb_num) {
-		dev_warn(data->dev, "Ignoring %d larger than TLB count %d\n",
-			 id_cnt, tlb_num);
-		id_cnt = tlb_num;
+	if (tlb_props->default_cfg != DEFAULT_TLB_NONE)
+		writel_relaxed(MMU_TLB_CFG_MASK(tlb_props->default_cfg),
+			       data->sfrbase + REG_MMU_TLB_CFG(0));
+
+	for (i = 0; i < id_cnt; i++) {
+		if (cfg[i].index == UNUSED_TLB_INDEX)
+			continue;
+
+		index = cfg[i].index;
+		writel_relaxed(MMU_TLB_CFG_MASK(cfg[i].cfg),
+			       data->sfrbase + REG_MMU_TLB_CFG(index));
+		writel_relaxed(MMU_TLB_MATCH_CFG_MASK(cfg[i].match_cfg),
+			       data->sfrbase + REG_MMU_TLB_MATCH_CFG(index));
+		writel_relaxed(cfg[i].match_id,
+			       data->sfrbase + REG_MMU_TLB_MATCH_ID(index));
 	}
-
-	for (i = 0; i < id_cnt; i++)
-		__sysmmu_set_one_tlb(data, i);
 }
 
 static inline void __sysmmu_init_config(struct sysmmu_drvdata *data)
 {
-	unsigned long cfg = 0, cfg_vm = 0;
+	u32 cfg = readl_relaxed(data->sfrbase + REG_MMU_CFG);
 
-	if (data->qos != DEFAULT_QOS_VALUE)
+	if (data->qos != DEFAULT_QOS_VALUE) {
+		cfg &= ~CFG_QOS(0xF);
 		cfg |= CFG_QOS_OVRRIDE | CFG_QOS(data->qos);
-
-	if (!data->no_block_mode)
-		writel_relaxed(CTRL_BLOCK, data->sfrbase + REG_MMU_CTRL);
+	}
 
 	__sysmmu_set_tlb(data);
 
-	if (data->has_vcr) {
-		cfg_vm = cfg & ~CFG_MASK_VM;
-		cfg &= ~CFG_MASK_GLOBAL;
-		writel_relaxed(cfg, data->sfrbase + REG_MMU_CFG);
-		writel_relaxed(cfg_vm, data->sfrbase + REG_MMU_CFG_VM);
-	} else {
-		writel_relaxed(cfg, data->sfrbase + REG_MMU_CFG);
-	}
+	writel_relaxed(cfg, data->sfrbase + REG_MMU_CFG);
 }
 
 static inline void __sysmmu_enable(struct sysmmu_drvdata *data)
 {
+	u32 ctrl_val = readl_relaxed(data->sfrbase + REG_MMU_CTRL);
+
+	if (!data->no_block_mode)
+		writel_relaxed(ctrl_val | CTRL_MMU_BLOCK, data->sfrbase + REG_MMU_CTRL);
+
 	__sysmmu_init_config(data);
 
-	writel_relaxed(data->pgtable / SPAGE_SIZE,
-		       MMU_REG(data, IDX_FLPT_BASE));
+	__sysmmu_write_all_vm(data, data->pgtable / SPAGE_SIZE,
+			      MMU_REG(data, IDX_FLPT_BASE));
 	__sysmmu_tlb_invalidate_all(data);
 
-	writel(CTRL_ENABLE, data->sfrbase + REG_MMU_CTRL);
+	writel(ctrl_val | CTRL_MMU_ENABLE, data->sfrbase + REG_MMU_CTRL);
 
-	if (data->has_vcr)
-		writel(CTRL_VID_ENABLE | CTRL_FAULT_STALL_MODE,
-		       data->sfrbase + REG_MMU_CTRL_VM);
+	if (data->has_vcr) {
+		ctrl_val = readl_relaxed(data->sfrbase + REG_MMU_CTRL_VM(0));
+
+		if (!data->async_fault_mode)
+			ctrl_val |= CTRL_FAULT_STALL_MODE;
+		__sysmmu_write_all_vm(data, ctrl_val | CTRL_MMU_ENABLE,
+				      data->sfrbase + REG_MMU_CTRL_VM(0));
+	}
+
+	SYSMMU_EVENT_LOG(data, SYSMMU_EVENT_ENABLE);
 }
 
 static struct samsung_sysmmu_domain *to_sysmmu_domain(struct iommu_domain *dom)
@@ -228,6 +276,48 @@ static inline void pgtable_flush(void *vastart, void *vaend)
 static bool samsung_sysmmu_capable(enum iommu_cap cap)
 {
 	return cap == IOMMU_CAP_CACHE_COHERENCY;
+}
+
+static inline size_t get_log_fit_pages(struct samsung_iommu_log *log, int len)
+{
+	return DIV_ROUND_UP(sizeof(*(log->log)) * len, PAGE_SIZE);
+}
+
+static void samsung_iommu_deinit_log(struct samsung_iommu_log *log)
+{
+	struct page *page;
+	int i, fit_pages = get_log_fit_pages(log, log->len);
+
+	page = virt_to_page(log->log);
+	for (i = 0; i < fit_pages; i++)
+		__free_page(page + i);
+}
+
+static int samsung_iommu_init_log(struct samsung_iommu_log *log, int len)
+{
+	struct page *page;
+	int order, order_pages, fit_pages = get_log_fit_pages(log, len);
+
+	atomic_set(&log->index, 0);
+	order = get_order(fit_pages * PAGE_SIZE);
+	page = alloc_pages(GFP_KERNEL | __GFP_ZERO, order);
+	if (!page)
+		return -ENOMEM;
+
+	split_page(page, order);
+
+	order_pages = 1 << order;
+	if (order_pages > fit_pages) {
+		int i;
+
+		for (i = fit_pages; i < order_pages; i++)
+			__free_page(page + i);
+	}
+
+	log->log = page_address(page);
+	log->len = len;
+
+	return 0;
 }
 
 static struct iommu_domain *samsung_sysmmu_domain_alloc(unsigned int type)
@@ -265,12 +355,19 @@ static struct iommu_domain *samsung_sysmmu_domain_alloc(unsigned int type)
 		}
 	}
 
+	if (samsung_iommu_init_log(&domain->log, SYSMMU_EVENT_MAX)) {
+		pr_err("failed to init domain logging\n");
+		goto err_init_log;
+	}
+
 	pgtable_flush(domain->page_table, domain->page_table + NUM_LV1ENTRIES);
 
 	spin_lock_init(&domain->pgtablelock);
 
 	return &domain->domain;
 
+err_init_log:
+	iommu_put_dma_cookie(&domain->domain);
 err_get_dma_cookie:
 	kfree(domain->lv2entcnt);
 err_counter:
@@ -284,6 +381,7 @@ static void samsung_sysmmu_domain_free(struct iommu_domain *dom)
 {
 	struct samsung_sysmmu_domain *domain = to_sysmmu_domain(dom);
 
+	samsung_iommu_deinit_log(&domain->log);
 	iommu_put_dma_cookie(dom);
 	kmem_cache_free(flpt_cache, domain->page_table);
 	kfree(domain->lv2entcnt);
@@ -306,6 +404,59 @@ static inline void samsung_sysmmu_detach_drvdata(struct sysmmu_drvdata *data)
 	spin_unlock_irqrestore(&data->lock, flags);
 }
 
+static int samsung_of_get_dma_window(struct device_node *dn, const char *prefix, int index,
+				     unsigned long *busno, dma_addr_t *addr, size_t *size)
+{
+	const __be32 *dma_window, *end;
+	int bytes, cur_index = 0;
+	char propname[NAME_MAX], addrname[NAME_MAX], sizename[NAME_MAX];
+
+	if (!dn || !addr || !size)
+		return -EINVAL;
+
+	if (!prefix)
+		prefix = "";
+
+	snprintf(propname, sizeof(propname), "%sdma-window", prefix);
+	snprintf(addrname, sizeof(addrname), "%s#dma-address-cells", prefix);
+	snprintf(sizename, sizeof(sizename), "%s#dma-size-cells", prefix);
+
+	dma_window = of_get_property(dn, propname, &bytes);
+	if (!dma_window)
+		return -ENODEV;
+	end = dma_window + bytes / sizeof(*dma_window);
+
+	while (dma_window < end) {
+		u32 cells;
+		const void *prop;
+
+		/* busno is one cell if supported */
+		if (busno)
+			*busno = be32_to_cpup(dma_window++);
+
+		prop = of_get_property(dn, addrname, NULL);
+		if (!prop)
+			prop = of_get_property(dn, "#address-cells", NULL);
+
+		cells = prop ? be32_to_cpup(prop) : of_n_addr_cells(dn);
+		if (!cells)
+			return -EINVAL;
+		*addr = of_read_number(dma_window, cells);
+		dma_window += cells;
+
+		prop = of_get_property(dn, sizename, NULL);
+		cells = prop ? be32_to_cpup(prop) : of_n_size_cells(dn);
+		if (!cells)
+			return -EINVAL;
+		*size = of_read_number(dma_window, cells);
+		dma_window += cells;
+
+		if (cur_index++ == index)
+			break;
+	}
+	return 0;
+}
+
 static int samsung_sysmmu_set_domain_range(struct iommu_domain *dom,
 					   struct device *dev)
 {
@@ -313,7 +464,7 @@ static int samsung_sysmmu_set_domain_range(struct iommu_domain *dom,
 	dma_addr_t start, end;
 	size_t size;
 
-	if (of_get_dma_window(dev->of_node, NULL, 0, NULL, &start, &size))
+	if (samsung_of_get_dma_window(dev->of_node, NULL, 0, NULL, &start, &size))
 		return 0;
 
 	end = start + size;
@@ -378,7 +529,7 @@ static int samsung_sysmmu_attach_dev(struct iommu_domain *dom,
 		return -ENXIO;
 	}
 
-	if (!fwspec->iommu_priv) {
+	if (!dev_iommu_priv_get(dev)) {
 		dev_err(dev, "has no IOMMU\n");
 		return -ENODEV;
 	}
@@ -388,7 +539,7 @@ static int samsung_sysmmu_attach_dev(struct iommu_domain *dom,
 	group_list = iommu_group_get_iommudata(group);
 	page_table = virt_to_phys(domain->page_table);
 
-	client = fwspec->iommu_priv;
+	client = dev_iommu_priv_get(dev);
 	for (i = 0; i < client->sysmmu_count; i++) {
 		drvdata = client->sysmmus[i];
 
@@ -430,7 +581,6 @@ err_drvdata_add:
 static void samsung_sysmmu_detach_dev(struct iommu_domain *dom,
 				      struct device *dev)
 {
-	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
 	struct sysmmu_clientdata *client;
 	struct samsung_sysmmu_domain *domain;
 	struct list_head *group_list;
@@ -441,7 +591,7 @@ static void samsung_sysmmu_detach_dev(struct iommu_domain *dom,
 	domain = to_sysmmu_domain(dom);
 	group_list = iommu_group_get_iommudata(group);
 
-	client = fwspec->iommu_priv;
+	client = dev_iommu_priv_get(dev);
 	for (i = 0; i < client->sysmmu_count; i++) {
 		drvdata = client->sysmmus[i];
 
@@ -529,7 +679,7 @@ static int lv1set_section(struct samsung_sysmmu_domain *domain,
 			.end = iova + SECT_SIZE,
 		};
 
-		iommu_tlb_sync(&domain->domain, &gather);
+		iommu_iotlb_sync(&domain->domain, &gather);
 	}
 
 	return 0;
@@ -548,7 +698,7 @@ static int lv2set_page(sysmmu_pte_t *pent, phys_addr_t paddr,
 		pgtable_flush(pent, pent + 1);
 		atomic_inc(pgcnt);
 	} else {	/* size == LPAGE_SIZE */
-		int i;
+		unsigned long i;
 
 		for (i = 0; i < SPAGES_PER_LPAGE; i++, pent++) {
 			if (WARN_ON(!lv2ent_unmapped(pent))) {
@@ -566,7 +716,8 @@ static int lv2set_page(sysmmu_pte_t *pent, phys_addr_t paddr,
 }
 
 static int samsung_sysmmu_map(struct iommu_domain *dom, unsigned long l_iova,
-			      phys_addr_t paddr, size_t size, int prot)
+			      phys_addr_t paddr, size_t size, int prot,
+			      gfp_t unused)
 {
 	struct samsung_sysmmu_domain *domain = to_sysmmu_domain(dom);
 	sysmmu_iova_t iova = (sysmmu_iova_t)l_iova;
@@ -596,6 +747,8 @@ static int samsung_sysmmu_map(struct iommu_domain *dom, unsigned long l_iova,
 
 	if (ret)
 		pr_err("failed to map %#zx @ %#x, ret:%d\n", size, iova, ret);
+	else
+		SYSMMU_EVENT_LOG_RANGE(domain, SYSMMU_EVENT_MAP, iova, iova + size);
 
 	return ret;
 }
@@ -660,6 +813,7 @@ static size_t samsung_sysmmu_unmap(struct iommu_domain *dom,
 
 done:
 	iommu_iotlb_gather_add_page(dom, gather, iova, size);
+	SYSMMU_EVENT_LOG_RANGE(domain, SYSMMU_EVENT_UNMAP, iova, iova + size);
 
 	return size;
 
@@ -688,11 +842,8 @@ static void samsung_sysmmu_flush_iotlb_all(struct iommu_domain *dom)
 
 	list_for_each_entry(drvdata, sysmmu_list, list) {
 		spin_lock_irqsave(&drvdata->lock, flags);
-		if (drvdata->attached_count &&
-		    pm_runtime_get_if_in_use(drvdata->dev)) {
+		if (drvdata->attached_count && drvdata->rpm_count > 0)
 			__sysmmu_tlb_invalidate_all(drvdata);
-			pm_runtime_put(drvdata->dev);
-		}
 		spin_unlock_irqrestore(&drvdata->lock, flags);
 	}
 }
@@ -716,12 +867,11 @@ static void samsung_sysmmu_iotlb_sync(struct iommu_domain *dom,
 
 	list_for_each_entry(drvdata, sysmmu_list, list) {
 		spin_lock_irqsave(&drvdata->lock, flags);
-		if (drvdata->attached_count &&
-		    pm_runtime_get_if_in_use(drvdata->dev)) {
-			__sysmmu_tlb_invalidate(drvdata,
-						gather->start, gather->end);
-			pm_runtime_put(drvdata->dev);
-		}
+		if (drvdata->attached_count && drvdata->rpm_count > 0)
+			__sysmmu_tlb_invalidate(drvdata, gather->start, gather->end);
+
+		SYSMMU_EVENT_LOG_RANGE(drvdata, SYSMMU_EVENT_IOTLB_SYNC,
+				       gather->start, gather->end);
 		spin_unlock_irqrestore(&drvdata->lock, flags);
 	}
 }
@@ -754,58 +904,51 @@ void samsung_sysmmu_dump_pagetable(struct device *dev, dma_addr_t iova)
 {
 }
 
-static int samsung_sysmmu_add_device(struct device *dev)
+static struct iommu_device *samsung_sysmmu_probe_device(struct device *dev)
 {
 	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
-	struct iommu_group *group;
 	struct sysmmu_clientdata *client;
 	int i;
 
 	if (!fwspec) {
 		dev_dbg(dev, "IOMMU instance data is not initialized\n");
-		return -ENODEV;
+		return ERR_PTR(-ENODEV);
 	}
 
 	if (fwspec->ops != &samsung_sysmmu_ops) {
 		dev_err(dev, "has different IOMMU ops\n");
-		return -ENODEV;
+		return ERR_PTR(-ENODEV);
 	}
 
-	group = iommu_group_get_for_dev(dev);
-	if (IS_ERR(group)) {
-		dev_err(dev, "has no suitable IOMMU group. (err:%ld)\n",
-			PTR_ERR(group));
-		return PTR_ERR(group);
+	client = (struct sysmmu_clientdata *) dev_iommu_priv_get(dev);
+	if (client->dev_link) {
+		dev_info(dev, "is already added. It's okay.\n");
+		return 0;
 	}
-
-	iommu_group_put(group);
-
-	client = (struct sysmmu_clientdata *)fwspec->iommu_priv;
 	client->dev_link = kcalloc(client->sysmmu_count,
-				   sizeof(**client->dev_link), GFP_KERNEL);
+				   sizeof(*client->dev_link), GFP_KERNEL);
 	if (!client->dev_link)
-		return -ENOMEM;
+		return ERR_PTR(-ENOMEM);
 
 	for (i = 0; i < client->sysmmu_count; i++) {
 		client->dev_link[i] =
-			device_link_add(dev,
-					client->sysmmus[i]->dev,
+			device_link_add(dev, client->sysmmus[i]->dev,
 					DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME);
 		if (!client->dev_link[i]) {
 			dev_err(dev, "failed to add device link of %s\n",
 				dev_name(client->sysmmus[i]->dev));
 			while (i-- > 0)
 				device_link_del(client->dev_link[i]);
-			return -EINVAL;
+			return ERR_PTR(-EINVAL);
 		}
 		dev_info(dev, "device link to %s\n",
 			 dev_name(client->sysmmus[i]->dev));
 	}
 
-	return 0;
+	return &client->sysmmus[0]->iommu;
 }
 
-static void samsung_sysmmu_remove_device(struct device *dev)
+static void samsung_sysmmu_release_device(struct device *dev)
 {
 	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
 	struct sysmmu_clientdata *client;
@@ -814,12 +957,11 @@ static void samsung_sysmmu_remove_device(struct device *dev)
 	if (!fwspec || fwspec->ops != &samsung_sysmmu_ops)
 		return;
 
-	client = (struct sysmmu_clientdata *)fwspec->iommu_priv;
+	client = (struct sysmmu_clientdata *) dev_iommu_priv_get(dev);
 	for (i = 0; i < client->sysmmu_count; i++)
 		device_link_del(client->dev_link[i]);
 	kfree(client->dev_link);
 
-	iommu_group_remove_device(dev);
 	iommu_fwspec_free(dev);
 }
 
@@ -834,7 +976,6 @@ static struct iommu_group *samsung_sysmmu_device_group(struct device *dev)
 	struct device_node *np;
 	struct platform_device *pdev;
 	struct list_head *list;
-	bool need_unmanaged_domain = false;
 
 	if (device_iommu_mapped(dev))
 		return iommu_group_get(dev);
@@ -852,9 +993,6 @@ static struct iommu_group *samsung_sysmmu_device_group(struct device *dev)
 		return ERR_PTR(-ENODEV);
 	}
 
-	if (of_property_read_bool(np, "samsung,unmanaged-domain"))
-		need_unmanaged_domain = true;
-
 	of_node_put(np);
 
 	group = platform_get_drvdata(pdev);
@@ -863,29 +1001,23 @@ static struct iommu_group *samsung_sysmmu_device_group(struct device *dev)
 		return ERR_PTR(-EPROBE_DEFER);
 	}
 
-	if (iommu_group_get_iommudata(group))
+	mutex_lock(&sysmmu_global_mutex);
+	if (iommu_group_get_iommudata(group)) {
+		mutex_unlock(&sysmmu_global_mutex);
 		return group;
+	}
 
 	list = kzalloc(sizeof(*list), GFP_KERNEL);
-	if (!list)
+	if (!list) {
+		mutex_unlock(&sysmmu_global_mutex);
 		return ERR_PTR(-ENOMEM);
+	}
 
 	INIT_LIST_HEAD(list);
 	iommu_group_set_iommudata(group, list,
 				  samsung_sysmmu_group_data_release);
 
-	if (need_unmanaged_domain) {
-		int ret;
-		struct iommu_domain *domain =
-				iommu_domain_alloc(&platform_bus_type);
-
-		ret = iommu_attach_group(domain, group);
-		if (ret) {
-			dev_err(dev, "failed to attach group, ret:%d\n", ret);
-			return ERR_PTR(ret);
-		}
-	}
-
+	mutex_unlock(&sysmmu_global_mutex);
 	return group;
 }
 
@@ -907,7 +1039,6 @@ static int samsung_sysmmu_of_xlate(struct device *dev,
 	unsigned int fwid = 0;
 	int ret;
 
-	iommu_device_link(&data->iommu, dev);
 	ret = iommu_fwspec_add_ids(dev, &fwid, 1);
 	if (ret) {
 		dev_err(dev, "failed to add fwspec. (err:%d)\n", ret);
@@ -916,21 +1047,21 @@ static int samsung_sysmmu_of_xlate(struct device *dev,
 	}
 
 	fwspec = dev_iommu_fwspec_get(dev);
-	if (!fwspec->iommu_priv) {
+	if (!dev_iommu_priv_get(dev)) {
 		client = devres_alloc(samsung_sysmmu_clientdata_release,
 				      sizeof(*client), GFP_KERNEL);
 		if (!client)
 			return -ENOMEM;
 		client->dev = dev;
-		fwspec->iommu_priv = client;
+		dev_iommu_priv_set(dev, client);
 		devres_add(dev, client);
 	}
 
-	client = (struct sysmmu_clientdata *)fwspec->iommu_priv;
+	client = (struct sysmmu_clientdata *) dev_iommu_priv_get(dev);
 	new_link = krealloc(client->sysmmus,
-			    sizeof(*data) * (client->sysmmu_count + 1),
+			    sizeof(data) * (client->sysmmu_count + 1),
 			    GFP_KERNEL);
-	if (!new_link)
+	if (ZERO_OR_NULL_PTR(new_link))
 		return -ENOMEM;
 
 	client->sysmmus = new_link;
@@ -938,6 +1069,131 @@ static int samsung_sysmmu_of_xlate(struct device *dev,
 
 	dev_info(dev, "has sysmmu %s (total count:%d)\n",
 		 dev_name(data->dev), client->sysmmu_count);
+
+	return ret;
+}
+
+static void samsung_sysmmu_put_resv_regions(struct device *dev,
+					    struct list_head *head)
+{
+	struct iommu_resv_region *entry, *next;
+
+	list_for_each_entry_safe(entry, next, head, list)
+		kfree(entry);
+}
+
+#define NR_IOMMU_RESERVED_TYPES 2
+static int samsung_sysmmu_get_resv_regions_by_node(struct device_node *np, struct device *dev,
+						   struct list_head *head)
+{
+	const char *propname[NR_IOMMU_RESERVED_TYPES] = {
+		"samsung,iommu-identity-map",
+		"samsung,iommu-reserved-map"
+	};
+	enum iommu_resv_type resvtype[NR_IOMMU_RESERVED_TYPES] = {
+		IOMMU_RESV_DIRECT, IOMMU_RESV_RESERVED
+	};
+	int n_addr_cells = of_n_addr_cells(dev->of_node);
+	int n_size_cells = of_n_size_cells(dev->of_node);
+	int n_all_cells = n_addr_cells + n_size_cells;
+	int type;
+
+	for (type = 0; type < 2; type++) {
+		const __be32 *prop;
+		u64 base, size;
+		int i, cnt;
+
+		prop = of_get_property(dev->of_node, propname[type], &cnt);
+		if (!prop)
+			continue;
+
+		cnt /=  sizeof(u32);
+		if (cnt % n_all_cells != 0) {
+			dev_err(dev, "Invalid number(%d) of values in %s\n", cnt, propname[type]);
+			return -EINVAL;
+		}
+
+		for (i = 0; i < cnt; i += n_all_cells) {
+			struct iommu_resv_region *region;
+
+			base = of_read_number(prop + i, n_addr_cells);
+			size = of_read_number(prop + i + n_addr_cells, n_size_cells);
+			if (base & ~dma_get_mask(dev) || (base + size) & ~dma_get_mask(dev)) {
+				dev_err(dev, "Unreachable DMA region in %s, [%#x..%#x)\n",
+						propname[type], base, base + size);
+				return -EINVAL;
+			}
+
+			region = iommu_alloc_resv_region(base, size, 0, resvtype[type]);
+			if (!region)
+				return -ENOMEM;
+
+			list_add_tail(&region->list, head);
+			dev_info(dev, "Reserved IOMMU mapping [%#x..%#x)\n", base, base + size);
+		}
+	}
+
+	return 0;
+}
+
+static void samsung_sysmmu_get_resv_regions(struct device *dev, struct list_head *head)
+{
+	struct device_node *curr_node, *target_node, *node;
+	struct platform_device *pdev;
+	int ret;
+
+	target_node = of_parse_phandle(dev->of_node, "samsung,iommu-group", 0);
+	if (!target_node) {
+		dev_err(dev, "doesn't have iommu-group property\n");
+		return;
+	}
+
+	for_each_node_with_property(node, "samsung,iommu-group") {
+		curr_node = of_parse_phandle(node, "samsung,iommu-group", 0);
+		if (!curr_node || curr_node != target_node) {
+			of_node_put(curr_node);
+			continue;
+		}
+
+		pdev = of_find_device_by_node(node);
+		if (!pdev) {
+			of_node_put(curr_node);
+			continue;
+		}
+
+		ret = samsung_sysmmu_get_resv_regions_by_node(dev->of_node, &pdev->dev, head);
+
+		put_device(&pdev->dev);
+		of_node_put(curr_node);
+
+		if (ret)
+			goto err;
+	}
+
+	of_node_put(target_node);
+
+	return;
+err:
+	of_node_put(target_node);
+	samsung_sysmmu_put_resv_regions(dev, head);
+	INIT_LIST_HEAD(head);
+}
+
+static int samsung_sysmmu_def_domain_type(struct device *dev)
+{
+	struct device_node *np;
+	int ret = 0;
+
+	np = of_parse_phandle(dev->of_node, "samsung,iommu-group", 0);
+	if (!np) {
+		dev_err(dev, "group is not registered\n");
+		return 0;
+	}
+
+	if (of_property_read_bool(np, "samsung,unmanaged-domain"))
+		ret = IOMMU_DOMAIN_UNMANAGED;
+
+	of_node_put(np);
 
 	return ret;
 }
@@ -953,16 +1209,31 @@ static struct iommu_ops samsung_sysmmu_ops = {
 	.flush_iotlb_all	= samsung_sysmmu_flush_iotlb_all,
 	.iotlb_sync		= samsung_sysmmu_iotlb_sync,
 	.iova_to_phys		= samsung_sysmmu_iova_to_phys,
-	.add_device		= samsung_sysmmu_add_device,
-	.remove_device		= samsung_sysmmu_remove_device,
+	.probe_device		= samsung_sysmmu_probe_device,
+	.release_device		= samsung_sysmmu_release_device,
 	.device_group		= samsung_sysmmu_device_group,
 	.of_xlate		= samsung_sysmmu_of_xlate,
+	.get_resv_regions	= samsung_sysmmu_get_resv_regions,
+	.put_resv_regions	= samsung_sysmmu_put_resv_regions,
+	.def_domain_type	= samsung_sysmmu_def_domain_type,
 	.pgsize_bitmap		= SECT_SIZE | LPAGE_SIZE | SPAGE_SIZE,
+	.owner			= THIS_MODULE,
 };
 
 static int sysmmu_get_hw_info(struct sysmmu_drvdata *data)
 {
+	int ret;
+
+	ret = pm_runtime_get_sync(data->dev);
+	if (ret < 0) {
+		pm_runtime_put_noidle(data->dev);
+		return ret;
+	}
+
 	data->version = __sysmmu_get_hw_version(data);
+	data->num_tlb = __sysmmu_get_tlb_num(data);
+	data->max_vm = __sysmmu_get_capa_max_page_table(data);
+	data->va_36bit_mode = __sysmmu_get_capa_va_width(data);
 
 	/* Default value */
 	data->reg_set = sysmmu_reg_set[REG_IDX_DEFAULT];
@@ -974,50 +1245,51 @@ static int sysmmu_get_hw_info(struct sysmmu_drvdata *data)
 	if (__sysmmu_get_capa_no_block_mode(data))
 		data->no_block_mode = true;
 
+	pm_runtime_put(data->dev);
+
 	return 0;
 }
 
 static int sysmmu_parse_tlb_property(struct device *dev,
 				     struct sysmmu_drvdata *drvdata)
 {
+	const char *default_props_name = "sysmmu,default_tlb";
 	const char *props_name = "sysmmu,tlb_property";
 	struct tlb_props *tlb_props = &drvdata->tlb_props;
-	struct tlb_config *cfg = NULL;
-	int i, cnt, ret;
-	int id_cnt = 0;
+	struct tlb_config *cfg;
+	int i, readsize, cnt, ret;
 
-	cnt = of_property_count_u32_elems(dev->of_node, props_name);
-	if (cnt <= 0) {
-		dev_info(dev, "No TLB propeties found.\n");
+	if (of_property_read_u32(dev->of_node, default_props_name,
+				 &tlb_props->default_cfg))
+		tlb_props->default_cfg = DEFAULT_TLB_NONE;
+
+	cnt = of_property_count_elems_of_size(dev->of_node, props_name,
+					      sizeof(*cfg));
+	if (cnt <= 0)
 		return 0;
-	}
 
-	cfg = devm_kcalloc(dev, cnt / 2, sizeof(*cfg), GFP_KERNEL);
+	cfg = devm_kcalloc(dev, cnt, sizeof(*cfg), GFP_KERNEL);
 	if (!cfg)
 		return -ENOMEM;
 
-	for (i = 0; i < cnt; i += 2) {
-		ret = of_property_read_u32_index(dev->of_node,
-						 props_name, i,
-						 &cfg[id_cnt].cfg);
-		if (ret) {
-			dev_err(dev, "failed to read tlb_property of %d/%d\n",
-				i, cnt);
-			return -EINVAL;
-		}
-
-		ret = of_property_read_u32_index(dev->of_node,
-						 props_name, i + 1,
-						 &cfg[id_cnt].id);
-		if (ret) {
-			dev_err(dev, "failed to read tlb_property of %d/%d\n",
-				i + 1, cnt);
-			return -EINVAL;
-		}
-		id_cnt++;
+	readsize = cnt * sizeof(*cfg) / sizeof(u32);
+	ret = of_property_read_variable_u32_array(dev->of_node, props_name,
+						  (u32 *)cfg,
+						  readsize, readsize);
+	if (ret < 0) {
+		dev_err(dev, "failed to get tlb property, return %d\n", ret);
+		return ret;
 	}
 
-	tlb_props->id_cnt = id_cnt;
+	for (i = 0; i < cnt; i++) {
+		if (cfg[i].index >= drvdata->num_tlb) {
+			dev_err(dev, "invalid index %d is ignored. (max:%d)\n",
+				cfg[i].index, drvdata->num_tlb);
+			cfg[i].index = UNUSED_TLB_INDEX;
+		}
+	}
+
+	tlb_props->id_cnt = cnt;
 	tlb_props->cfg = cfg;
 
 	return 0;
@@ -1059,7 +1331,7 @@ static int __sysmmu_secure_irq_init(struct device *sysmmu,
 
 static int sysmmu_parse_dt(struct device *sysmmu, struct sysmmu_drvdata *data)
 {
-	unsigned int qos = DEFAULT_QOS_VALUE;
+	unsigned int qos = DEFAULT_QOS_VALUE, mask = 0;
 	int ret;
 
 	/* Parsing QoS */
@@ -1079,6 +1351,15 @@ static int sysmmu_parse_dt(struct device *sysmmu, struct sysmmu_drvdata *data)
 			return ret;
 		}
 	}
+
+	/* use async fault mode */
+	data->async_fault_mode = of_property_read_bool(sysmmu->of_node,
+						       "sysmmu,async-fault");
+
+	data->vmid_mask = DEFAULT_VMID_MASK;
+	ret = of_property_read_u32_index(sysmmu->of_node, "vmid_mask", 0, &mask);
+	if (!ret && (mask & ((1 << data->max_vm) - 1)))
+		data->vmid_mask = mask;
 
 	ret = sysmmu_parse_tlb_property(sysmmu, data);
 	if (ret)
@@ -1160,46 +1441,51 @@ static int samsung_sysmmu_device_probe(struct platform_device *pdev)
 		return PTR_ERR(data->clk);
 	}
 
-	ret = sysmmu_get_hw_info(data);
-	if (ret) {
-		dev_err(dev, "failed to get h/w info\n");
-		return ret;
-	}
-
 	INIT_LIST_HEAD(&data->list);
 	spin_lock_init(&data->lock);
 	data->dev = dev;
+	platform_set_drvdata(pdev, data);
+
+	err = samsung_iommu_init_log(&data->log, SYSMMU_EVENT_MAX);
+	if (err) {
+		dev_err(dev, "failed to initialize log\n");
+		return err;
+	}
+
+	pm_runtime_enable(dev);
+	ret = sysmmu_get_hw_info(data);
+	if (ret) {
+		dev_err(dev, "failed to get h/w info\n");
+		goto err_get_hw_info;
+	}
 
 	ret = sysmmu_parse_dt(data->dev, data);
 	if (ret)
-		return ret;
+		goto err_get_hw_info;
 
 	ret = iommu_device_sysfs_add(&data->iommu, data->dev,
 				     NULL, dev_name(dev));
 	if (ret) {
 		dev_err(dev, "failed to register iommu in sysfs\n");
-		return ret;
+		goto err_get_hw_info;
 	}
 
-	iommu_device_set_ops(&data->iommu, &samsung_sysmmu_ops);
-	iommu_device_set_fwnode(&data->iommu, dev->fwnode);
-
-	err = iommu_device_register(&data->iommu);
+	err = iommu_device_register(&data->iommu, &samsung_sysmmu_ops, dev);
 	if (err) {
 		dev_err(dev, "failed to register iommu\n");
 		goto err_iommu_register;
 	}
 
+	mutex_lock(&sysmmu_global_mutex);
 	if (!sysmmu_global_init_done) {
 		err = samsung_sysmmu_init_global();
 		if (err) {
 			dev_err(dev, "failed to initialize global data\n");
+			mutex_unlock(&sysmmu_global_mutex);
 			goto err_global_init;
 		}
 	}
-	pm_runtime_enable(dev);
-
-	platform_set_drvdata(pdev, data);
+	mutex_unlock(&sysmmu_global_mutex);
 
 	dev_info(dev, "initialized IOMMU. Ver %d.%d.%d\n",
 		 MMU_MAJ_VER(data->version),
@@ -1211,6 +1497,9 @@ err_global_init:
 	iommu_device_unregister(&data->iommu);
 err_iommu_register:
 	iommu_device_sysfs_remove(&data->iommu);
+err_get_hw_info:
+	pm_runtime_disable(dev);
+	samsung_iommu_deinit_log(&data->log);
 	return err;
 }
 
@@ -1224,9 +1513,13 @@ static int __maybe_unused samsung_sysmmu_runtime_suspend(struct device *sysmmu)
 	struct sysmmu_drvdata *drvdata = dev_get_drvdata(sysmmu);
 
 	spin_lock_irqsave(&drvdata->lock, flags);
+	drvdata->rpm_count--;
 	if (drvdata->attached_count > 0)
 		__sysmmu_disable(drvdata);
 	spin_unlock_irqrestore(&drvdata->lock, flags);
+
+	SYSMMU_EVENT_LOG_RANGE(drvdata, SYSMMU_EVENT_POWEROFF,
+			       drvdata->rpm_count, drvdata->attached_count);
 
 	return 0;
 }
@@ -1237,9 +1530,13 @@ static int __maybe_unused samsung_sysmmu_runtime_resume(struct device *sysmmu)
 	struct sysmmu_drvdata *drvdata = dev_get_drvdata(sysmmu);
 
 	spin_lock_irqsave(&drvdata->lock, flags);
+	drvdata->rpm_count++;
 	if (drvdata->attached_count > 0)
 		__sysmmu_enable(drvdata);
 	spin_unlock_irqrestore(&drvdata->lock, flags);
+
+	SYSMMU_EVENT_LOG_RANGE(drvdata, SYSMMU_EVENT_POWERON,
+			       drvdata->rpm_count, drvdata->attached_count);
 
 	return 0;
 }
