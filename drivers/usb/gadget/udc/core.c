@@ -694,6 +694,7 @@ static int usb_gadget_connect_locked(struct usb_gadget *gadget)
 	}
 
 	ret = gadget->ops->pullup(gadget, 1);
+	pr_info("%s %d: ret %d\n", __func__, __LINE__, ret);
 	if (!ret)
 		gadget->connected = 1;
 

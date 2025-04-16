@@ -279,6 +279,7 @@ static int unregister_gadget(struct gadget_info *gi)
 {
 	int ret;
 
+	pr_info("%s '%s'\n", __func__, gi->composite.gadget_driver.udc_name);
 	if (!gi->composite.gadget_driver.udc_name)
 		return -ENODEV;
 
@@ -308,6 +309,8 @@ static ssize_t gadget_dev_desc_UDC_store(struct config_item *item,
 
 	mutex_lock(&gi->lock);
 
+	pr_info("%s '%s'\n", __func__, name);
+	pr_info("+++ %s '%s'\n", __func__, gi->composite.gadget_driver.udc_name);
 	if (!strlen(name) || strcmp(name, "none") == 0) {
 		ret = unregister_gadget(gi);
 		if (ret)
@@ -316,15 +319,18 @@ static ssize_t gadget_dev_desc_UDC_store(struct config_item *item,
 	} else {
 		if (gi->composite.gadget_driver.udc_name) {
 			ret = -EBUSY;
+			pr_info("%s %d\n", __func__, __LINE__);
 			goto err;
 		}
 		gi->composite.gadget_driver.udc_name = name;
 		ret = usb_gadget_register_driver(&gi->composite.gadget_driver);
+		pr_info("%s %d: ret: %d\n", __func__, __LINE__, ret);
 		if (ret) {
 			gi->composite.gadget_driver.udc_name = NULL;
 			goto err;
 		}
 	}
+	pr_info("--- %s '%s'\n", __func__, gi->composite.gadget_driver.udc_name);
 	mutex_unlock(&gi->lock);
 	return len;
 err:
@@ -1297,6 +1303,8 @@ static void purge_configs_funcs(struct gadget_info *gi)
 		list_for_each_entry_safe_reverse(f, tmp, &c->functions, list) {
 
 			list_move(&f->list, &cfg->func_list);
+			if (f->disable)
+				f->disable(f);
 			if (f->unbind) {
 				dev_dbg(&gi->cdev.gadget->dev,
 					"unbind function '%s'/%p\n",
