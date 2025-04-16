@@ -148,4 +148,10 @@ config EXYNOS_CPUPM
 	help
 	  Support Exynos CPU Power Control for EXYNOS SoC.
 
+config EXYNOS_CPUHP
+	tristate "CPU Hotplug driver support"
+	default n
+	help
+	  Support CPU Hotplug interface for Exynos SoC.
+
 source "drivers/soc/samsung/exynos/Kconfig"

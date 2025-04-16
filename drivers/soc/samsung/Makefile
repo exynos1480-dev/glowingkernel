@@ -26,5 +26,6 @@ exynos-bcm-$(CONFIG_SOC_S5E8845) 	+= exynos-bcm_dbg-8845.o
 
 # CPU Power Management
 obj-$(CONFIG_EXYNOS_CPUPM)      += exynos-cpupm.o
+obj-$(CONFIG_EXYNOS_CPUHP)      += exynos-cpuhp.o
 
 obj-$(CONFIG_SOC_SAMSUNG)       += exynos/
