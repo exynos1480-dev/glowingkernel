@@ -9,3 +9,4 @@ obj-$(CONFIG_SAMSUNG_KIC)               += kic/
 obj-$(CONFIG_MUIC_SAMSUNG_IFPMIC)	+= muic/
 obj-$(CONFIG_SCSC_CORE)			+= scsc/
 obj-$(CONFIG_SCSC_BT)			+= scsc_bt/
+obj-$(CONFIG_SLSI_BT)			+= slsi_bt/
