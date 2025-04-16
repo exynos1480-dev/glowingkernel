@@ -218,3 +218,7 @@ obj-y += regulator/pmic_class/
 obj-y += mfd/slsi/s2mf301/
 obj-y += mfd/sm/sm5714/
 obj-y += knox/
+obj-y += muic/common/
+obj-y += muic/slsi/platform/
+obj-y += muic/slsi/s2mf301/
+obj-y += muic/sm/sm5714/

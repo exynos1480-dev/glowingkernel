@@ -267,5 +267,9 @@ source "drivers/regulator/pmic_class/Kconfig"
 source "drivers/mfd/slsi/s2mf301/Kconfig"
 source "drivers/mfd/sm/sm5714/Kconfig"
 source "drivers/knox/Kconfig"
+source "drivers/muic/common/Kconfig"
+source "drivers/muic/slsi/platform/Kconfig"
+source "drivers/muic/slsi/s2mf301/Kconfig"
+source "drivers/muic/sm/sm5714/Kconfig"
 
 endmenu
