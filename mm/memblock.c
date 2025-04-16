@@ -107,6 +107,9 @@ unsigned long max_low_pfn;
 unsigned long min_low_pfn;
 unsigned long max_pfn;
 unsigned long long max_possible_pfn;
+#ifdef CONFIG_RBIN
+unsigned long rbin_total;
+#endif
 
 static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_MEMORY_REGIONS] __initdata_memblock;
 static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_RESERVED_REGIONS] __initdata_memblock;
@@ -2543,6 +2546,9 @@ static int memblock_memsize_show(struct seq_file *m, void *private)
 	unsigned long reserved = 0, reusable = 0, total;
 	unsigned long system = totalram_pages() << PAGE_SHIFT;
 
+#ifdef CONFIG_RBIN
+	system += rbin_total << PAGE_SHIFT;
+#endif
 	sort(memsize_rgn, memsize_rgn_count,
 	     sizeof(memsize_rgn[0]), memsize_rgn_cmp, NULL);
 	for (i = 0; i < memsize_rgn_count; i++) {

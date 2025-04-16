@@ -12,6 +12,11 @@ config SAMSUNG_IOMMU_GROUP
 	help
 	  Support for IOMMU group on Samsung Exynos SoCs.
 
+config SAMSUNG_SECURE_IOVA
+	tristate "Samsung Secure IOVA Support"
+	help
+	  Support secure device virtual address management for Samsung Exynos SoCs.
+
 config SAMSUNG_IOMMU_V9
 	tristate "Samsung IOMMU V9 Support"
 	select ARM_DMA_USE_IOMMU
