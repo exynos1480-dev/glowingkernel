@@ -608,7 +608,7 @@ static struct scsi_driver sd_template = {
 		.name		= "sd",
 		.owner		= THIS_MODULE,
 		.probe		= sd_probe,
-		.probe_type	= PROBE_PREFER_ASYNCHRONOUS,
+		.probe_type	= PROBE_FORCE_SYNCHRONOUS,
 		.remove		= sd_remove,
 		.shutdown	= sd_shutdown,
 		.pm		= &sd_pm_ops,
@@ -1171,6 +1171,9 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
 		if (ret)
 			goto fail;
 	}
+
+	if (rq->cmd_flags & REQ_RELIABLE)
+		rq->cmd_flags |= REQ_FUA;
 
 	fua = rq->cmd_flags & REQ_FUA ? 0x8 : 0;
 	dix = scsi_prot_sg_count(cmd);
@@ -3238,6 +3241,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
 	struct scsi_disk *sdkp = scsi_disk(disk);
 	struct scsi_device *sdp = sdkp->device;
 	struct request_queue *q = sdkp->disk->queue;
+	struct scsi_host_template *sht = sdp->host->hostt;
 	sector_t old_capacity = sdkp->capacity;
 	unsigned char *buffer;
 	unsigned int dev_max, rw_max;
@@ -3329,6 +3333,10 @@ static int sd_revalidate_disk(struct gendisk *disk)
 	 * host limit.
 	 */
 	rw_max = min_not_zero(rw_max, sdp->host->opt_sectors);
+
+	/* Set rw_max using hw_max when device is ufs */
+	if (!strncmp(sht->name, "ufshcd", 6))
+		rw_max = queue_max_hw_sectors(q);
 
 	/* Do not exceed controller limit */
 	rw_max = min(rw_max, queue_max_hw_sectors(q));
@@ -3498,6 +3506,7 @@ static int sd_probe(struct device *dev)
 	atomic_set(&sdkp->openers, 0);
 	atomic_set(&sdkp->device->ioerr_cnt, 0);
 
+	sdp->request_queue->rq_timeout = 0;
 	if (!sdp->request_queue->rq_timeout) {
 		if (sdp->type != TYPE_MOD)
 			blk_queue_rq_timeout(sdp->request_queue, SD_TIMEOUT);

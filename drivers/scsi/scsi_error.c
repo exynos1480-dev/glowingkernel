@@ -207,6 +207,9 @@ scmd_eh_abort_handler(struct work_struct *work)
 			scmd_printk(KERN_WARNING, scmd,
 				    "finish aborted command\n"));
 		scsi_finish_command(scmd);
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+		pr_info("%s finish command\n", __func__);
+#endif
 	}
 	return;
 

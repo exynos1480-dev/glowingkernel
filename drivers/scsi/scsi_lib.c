@@ -1520,6 +1520,12 @@ static int scsi_dispatch_cmd(struct scsi_cmnd *cmd)
 	}
 
 	trace_scsi_dispatch_cmd_start(cmd);
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (cmd && cmd->device && cmd->device->removable &&
+			cmd->cmnd[0] == TEST_UNIT_READY) {
+		pr_info("%s TEST_UNIT_READY +\n", __func__);
+	}
+#endif
 	rtn = host->hostt->queuecommand(host, cmd);
 	if (rtn) {
 		atomic_dec(&cmd->device->iorequest_cnt);
@@ -1531,6 +1537,12 @@ static int scsi_dispatch_cmd(struct scsi_cmnd *cmd)
 		SCSI_LOG_MLQUEUE(3, scmd_printk(KERN_INFO, cmd,
 			"queuecommand : request rejected\n"));
 	}
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (cmd && cmd->device && cmd->device->removable &&
+			cmd->cmnd[0] == TEST_UNIT_READY) {
+		pr_info("%s TEST_UNIT_READY -\n", __func__);
+	}
+#endif
 
 	return rtn;
  done:
@@ -1616,6 +1628,13 @@ static void scsi_done_internal(struct scsi_cmnd *cmd, bool complete_directly)
 {
 	struct request *req = scsi_cmd_to_rq(cmd);
 
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (cmd && cmd->device && cmd->device->removable &&
+			cmd->cmnd[0] == TEST_UNIT_READY) {
+		pr_info("%s TEST_UNIT_READY +\n", __func__);
+	}
+#endif
+
 	switch (cmd->submitter) {
 	case SUBMITTED_BY_BLOCK_LAYER:
 		break;
@@ -1627,14 +1646,27 @@ static void scsi_done_internal(struct scsi_cmnd *cmd, bool complete_directly)
 
 	if (unlikely(blk_should_fake_timeout(scsi_cmd_to_rq(cmd)->q)))
 		return;
-	if (unlikely(test_and_set_bit(SCMD_STATE_COMPLETE, &cmd->state)))
+	if (unlikely(test_and_set_bit(SCMD_STATE_COMPLETE, &cmd->state))) {
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+		if (cmd && cmd->device && cmd->device->removable &&
+				cmd->cmnd[0] == TEST_UNIT_READY) {
+			pr_info("%s TEST_UNIT_READY unlikely ret -\n", __func__);
+		}
+#endif
 		return;
+	}
 	trace_scsi_dispatch_cmd_done(cmd);
 
 	if (complete_directly)
 		blk_mq_complete_request_direct(req, scsi_complete);
 	else
 		blk_mq_complete_request(req);
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (cmd && cmd->device && cmd->device->removable &&
+			cmd->cmnd[0] == TEST_UNIT_READY) {
+		pr_info("%s TEST_UNIT_READY -\n", __func__);
+	}
+#endif
 }
 
 void scsi_done(struct scsi_cmnd *cmd)
@@ -2297,6 +2329,11 @@ scsi_test_unit_ready(struct scsi_device *sdev, int timeout, int retries,
 	};
 	int result;
 
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (sdev->removable)
+		sdev_printk(KERN_INFO, sdev, "%s +\n", __func__);
+#endif
+
 	/* try to eat the UNIT_ATTENTION if there are enough retries */
 	do {
 		result = scsi_execute_cmd(sdev, cmd, REQ_OP_DRV_IN, NULL, 0,
@@ -2306,7 +2343,10 @@ scsi_test_unit_ready(struct scsi_device *sdev, int timeout, int retries,
 			sdev->changed = 1;
 	} while (scsi_sense_valid(sshdr) &&
 		 sshdr->sense_key == UNIT_ATTENTION && --retries);
-
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_USB_DEBUG_DETAILED_LOG)
+	if (sdev->removable)
+		sdev_printk(KERN_INFO, sdev, "%s -\n", __func__);
+#endif
 	return result;
 }
 EXPORT_SYMBOL(scsi_test_unit_ready);
