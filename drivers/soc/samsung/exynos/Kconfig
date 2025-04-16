@@ -96,6 +96,7 @@ config CMU_EWF
 	help
 	Support CMUEWF for Exynos SoC.
 
+
 config ACPM_DVFS
         tristate "Exynos ACPM DVFS manager"
         depends on CAL_IF && CMUCAL
@@ -109,6 +110,12 @@ config EXYNOS_POWER_RAIL_DBG
 	default m
 	help
 	  Support POWER RAIL STATUS for Exynos SoC.
+
+config EXYNOS_ICM
+	tristate "Exynos Isolated CryptoManager driver"
+	default n
+	help
+	  Support Exynos Isolated CryptoManager driver
 
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
