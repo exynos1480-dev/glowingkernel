@@ -271,5 +271,6 @@ source "drivers/muic/common/Kconfig"
 source "drivers/muic/slsi/platform/Kconfig"
 source "drivers/muic/slsi/s2mf301/Kconfig"
 source "drivers/muic/sm/sm5714/Kconfig"
+source "drivers/usb/typec/slsi/common/Kconfig"
 
 endmenu

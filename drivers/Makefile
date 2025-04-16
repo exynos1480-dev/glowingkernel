@@ -222,3 +222,4 @@ obj-y += muic/common/
 obj-y += muic/slsi/platform/
 obj-y += muic/slsi/s2mf301/
 obj-y += muic/sm/sm5714/
+obj-y += usb/typec/slsi/common/
