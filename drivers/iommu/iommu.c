@@ -215,6 +215,7 @@ int iommu_device_register(struct iommu_device *iommu,
 			  const struct iommu_ops *ops, struct device *hwdev)
 {
 	int err = 0;
+	static bool bus_iommu_probed = false;
 
 	/* We need to be able to take module references appropriately */
 	if (WARN_ON(is_module_address((unsigned long)ops) && !ops->owner))
@@ -236,6 +237,9 @@ int iommu_device_register(struct iommu_device *iommu,
 	list_add_tail(&iommu->list, &iommu_device_list);
 	spin_unlock(&iommu_device_lock);
 
+	if (bus_iommu_probed)
+		return err;
+
 	for (int i = 0; i < ARRAY_SIZE(iommu_buses) && !err; i++) {
 		bool skip = false;
 
@@ -247,6 +251,9 @@ int iommu_device_register(struct iommu_device *iommu,
 	}
 	if (err)
 		iommu_device_unregister(iommu);
+	else
+		bus_iommu_probed = true;
+
 	return err;
 }
 EXPORT_SYMBOL_GPL(iommu_device_register);
