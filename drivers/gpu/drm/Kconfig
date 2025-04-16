@@ -527,3 +527,5 @@ config DRM_LIB_RANDOM
 config DRM_PRIVACY_SCREEN
 	bool
 	default n
+
+MCD_PANEL_PATH := drivers/gpu/drm/samsung/panel

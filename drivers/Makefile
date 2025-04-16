@@ -203,3 +203,7 @@ obj-y += battery/core/
 obj-y += battery/fuelgauge/s2mf301_fuelgauge/
 obj-y += battery/fuelgauge/sm5714_fuelgauge/
 obj-y += fingerprint/
+obj-y += gpu/drm/samsung/panel/
+obj-y += gpu/drm/samsung/panel/ana6710/
+obj-y += gpu/drm/samsung/panel/oled_common/
+obj-y += gpu/drm/samsung/panel/s6e3fc5/

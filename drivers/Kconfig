@@ -252,5 +252,9 @@ source "drivers/battery/core/Kconfig"
 source "drivers/battery/fuelgauge/s2mf301_fuelgauge/Kconfig"
 source "drivers/battery/fuelgauge/sm5714_fuelgauge/Kconfig"
 source "drivers/fingerprint/Kconfig"
+source "drivers/gpu/drm/samsung/panel/Kconfig"
+source "drivers/gpu/drm/samsung/panel/ana6710/Kconfig"
+source "drivers/gpu/drm/samsung/panel/oled_common/Kconfig"
+source "drivers/gpu/drm/samsung/panel/s6e3fc5/Kconfig"
 
 endmenu
