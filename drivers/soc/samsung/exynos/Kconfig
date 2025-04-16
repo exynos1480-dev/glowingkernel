@@ -129,5 +129,12 @@ config EXYNOS_PMU_IF
 	Support PMU register API for Exynos SoC.
 	select EXYNOS_PMU_ARM_DRIVERS if ARM && ARCH_EXYNOS
 
+config EXYNOS_WOW
+	tristate "Exynos Workload Watcher"
+	depends on ARM_EXYNOS_DEVFREQ
+	default m
+	help
+	  Exynos Workload Wather (WoW) driver support
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"

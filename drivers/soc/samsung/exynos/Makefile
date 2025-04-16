@@ -16,3 +16,6 @@ obj-$(CONFIG_EXYNOS_ICM)		+= exynos-icm.o
 obj-$(CONFIG_EXYNOS_SSP)        	+= exynos-ssp.o
 
 obj-$(CONFIG_EXYNOS_PMU_IF)		+= exynos-pmu-if.o
+
+# Exynos WoW
+obj-$(CONFIG_EXYNOS_WOW)       += exynos-wow.o
