@@ -210,6 +210,7 @@ obj-y += gpu/drm/samsung/panel/oled_common/
 obj-y += gpu/drm/samsung/panel/s6e3fc5/
 obj-y += input/input_boost/
 obj-y += input/misc/hall/
+obj-y += input/sec_input/
 obj-y += regulator/dio8018/
 obj-y += regulator/pmic_class/
 obj-y += mfd/slsi/s2mf301/
