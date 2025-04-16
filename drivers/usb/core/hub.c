@@ -35,6 +35,9 @@
 #include <linux/bitfield.h>
 #include <linux/uaccess.h>
 #include <asm/byteorder.h>
+#if IS_ENABLED(CONFIG_USB_VENDOR_NOTIFY)
+#include <linux/usb_vendor_notify.h>
+#endif
 
 #include "hub.h"
 #include "otg_productlist.h"
@@ -133,6 +136,9 @@ static int usb_reset_and_verify_device(struct usb_device *udev);
 static int hub_port_disable(struct usb_hub *hub, int port1, int set_state);
 static bool hub_port_warm_reset_required(struct usb_hub *hub, int port1,
 		u16 portstatus);
+#ifdef CONFIG_USB_INTERFACE_LPM_LIST
+static void hub_set_initial_usb2_lpm_policy(struct usb_device *udev);
+#endif
 
 static inline char *portspeed(struct usb_hub *hub, int portstatus)
 {
@@ -2508,6 +2514,12 @@ static int usb_enumerate_device(struct usb_device *udev)
 	}
 
 	usb_detect_interface_quirks(udev);
+#ifdef CONFIG_USB_INTERFACE_LPM_LIST
+	if (usb_detect_interface_lpm(udev)) {
+		dev_info(&udev->dev, "L1 enable");
+		hub_set_initial_usb2_lpm_policy(udev);
+	}
+#endif
 
 	return 0;
 }
@@ -2618,6 +2630,11 @@ int usb_new_device(struct usb_device *udev)
 	dev_dbg(&udev->dev, "udev %d, busnum %d, minor = %d\n",
 			udev->devnum, udev->bus->busnum,
 			(((udev->bus->busnum-1) * 128) + (udev->devnum-1)));
+#if IS_ENABLED(CONFIG_USB_VENDOR_NOTIFY)
+	err = send_usb_vendor_notify_new_device(udev);
+	if (err)
+		goto fail;
+#endif
 	/* export the usbdev device-node for libusb */
 	udev->dev.devt = MKDEV(USB_DEVICE_MAJOR,
 			(((udev->bus->busnum-1) * 128) + (udev->devnum-1)));
@@ -5205,7 +5222,9 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	/* notify HCD that we have a device connected and addressed */
 	if (hcd->driver->update_device)
 		hcd->driver->update_device(hcd, udev);
+#ifndef CONFIG_USB_INTERFACE_LPM_LIST
 	hub_set_initial_usb2_lpm_policy(udev);
+#endif
 fail:
 	if (retval) {
 		hub_port_disable(hub, port1, 0);
