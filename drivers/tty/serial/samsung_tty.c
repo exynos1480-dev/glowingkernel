@@ -71,6 +71,7 @@ enum s3c24xx_port_type {
 struct s3c24xx_uart_info {
 	const char		*name;
 	enum s3c24xx_port_type	type;
+	bool			has_usi;
 	unsigned int		port_type;
 	unsigned int		fifosize;
 	unsigned long		rx_fifomask;
@@ -1365,6 +1366,29 @@ static int apple_s5l_serial_startup(struct uart_port *port)
 	return ret;
 }
 
+static void exynos_usi_init(struct uart_port *port)
+{
+	struct s3c24xx_uart_port *ourport = to_ourport(port);
+	const struct s3c24xx_uart_info *info = ourport->info;
+	unsigned int val;
+
+	if (!info->has_usi)
+		return;
+
+	/* Clear the software reset of USI block (it's set at startup) */
+	val = rd_regl(port, USI_CON);
+	val &= ~USI_CON_RESET_MASK;
+	wr_regl(port, USI_CON, val);
+	udelay(1);
+
+	/* Continuously provide the clock to USI IP w/o gating (for Rx mode) */
+	val = rd_regl(port, USI_OPTION);
+	val &= ~USI_OPTION_HWACG_MASK;
+	val |= USI_OPTION_HWACG_CLKREQ_ON;
+	wr_regl(port, USI_OPTION, val);
+}
+
+
 /* power power management control */
 
 static void s3c24xx_serial_pm(struct uart_port *port, unsigned int level,
@@ -1391,6 +1415,8 @@ static void s3c24xx_serial_pm(struct uart_port *port, unsigned int level,
 
 		if (!IS_ERR(ourport->baudclk))
 			clk_prepare_enable(ourport->baudclk);
+
+		exynos_usi_init(port);
 		break;
 	default:
 		dev_err(port->dev, "s3c24xx_serial: unknown pm %d\n", level);
@@ -2092,6 +2118,8 @@ static int s3c24xx_serial_init_port(struct s3c24xx_uart_port *ourport,
 	if (ret)
 		pr_warn("uart: failed to enable baudclk\n");
 
+	exynos_usi_init(port);
+
 	/* Keep all interrupts masked and cleared */
 	switch (ourport->info->type) {
 	case TYPE_S3C6400:
@@ -2747,10 +2775,11 @@ static const struct s3c24xx_serial_drv_data s5pv210_serial_drv_data = {
 #endif
 
 #if defined(CONFIG_ARCH_EXYNOS)
-#define EXYNOS_COMMON_SERIAL_DRV_DATA()				\
+#define EXYNOS_COMMON_SERIAL_DRV_DATA(_has_usi)			\
 	.info = {						\
 		.name		= "Samsung Exynos UART",	\
 		.type		= TYPE_S3C6400,			\
+		.has_usi	= _has_usi,			\
 		.port_type	= PORT_S3C6400,			\
 		.has_divslot	= 1,				\
 		.rx_fifomask	= S5PV210_UFSTAT_RXMASK,	\
@@ -2771,17 +2800,17 @@ static const struct s3c24xx_serial_drv_data s5pv210_serial_drv_data = {
 	}							\
 
 static const struct s3c24xx_serial_drv_data exynos4210_serial_drv_data = {
-	EXYNOS_COMMON_SERIAL_DRV_DATA(),
+	EXYNOS_COMMON_SERIAL_DRV_DATA(false),
 	.fifosize = { 256, 64, 16, 16 },
 };
 
 static const struct s3c24xx_serial_drv_data exynos5433_serial_drv_data = {
-	EXYNOS_COMMON_SERIAL_DRV_DATA(),
+	EXYNOS_COMMON_SERIAL_DRV_DATA(false),
 	.fifosize = { 64, 256, 16, 256 },
 };
 
 static const struct s3c24xx_serial_drv_data exynos850_serial_drv_data = {
-	EXYNOS_COMMON_SERIAL_DRV_DATA(),
+	EXYNOS_COMMON_SERIAL_DRV_DATA(true),
 	.fifosize = { 256, 64, 64, 64 },
 };
 
