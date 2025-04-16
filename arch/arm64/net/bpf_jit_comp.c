@@ -13,6 +13,9 @@
 #include <linux/memory.h>
 #include <linux/printk.h>
 #include <linux/slab.h>
+#ifdef CONFIG_RKP
+#include <linux/rkp.h>
+#endif
 
 #include <asm/asm-extable.h>
 #include <asm/byteorder.h>
@@ -1598,6 +1601,9 @@ skip_init_ctx:
 	prog->bpf_func = (void *)ctx.image;
 	prog->jited = 1;
 	prog->jited_len = prog_size;
+#ifdef CONFIG_RKP
+	uh_call(UH_APP_RKP, RKP_BPF_LOAD, (u64)header, (u64)header->size, 0, 0);
+#endif
 
 	if (!prog->is_func || extra_pass) {
 		int i;

@@ -102,3 +102,4 @@ endif
 
 # for cleaning
 subdir- += vdso vdso32
+obj-$(CONFIG_UH)			+= uh_entry.o

@@ -726,10 +726,18 @@ static int lsm_superblock_alloc(struct super_block *sb)
  *	This is a hook that returns a value.
  */
 
+/*
+ * security_integrity_current() is added,
+
+ * which has a dependency of CONFIG_KDP_CRED.
+ * security_integrity_current is added to check integrity of credential context.
+ * if CONFIG_KDP_CRED is disabled, it will always return 0.
+ */
 #define call_void_hook(FUNC, ...)				\
 	do {							\
 		struct security_hook_list *P;			\
 								\
+		if(security_integrity_current()) break;		\
 		hlist_for_each_entry(P, &security_hook_heads.FUNC, list) \
 			P->hook.FUNC(__VA_ARGS__);		\
 	} while (0)
@@ -739,6 +747,9 @@ static int lsm_superblock_alloc(struct super_block *sb)
 	do {							\
 		struct security_hook_list *P;			\
 								\
+		RC = security_integrity_current();		\
+		if (RC != 0)					\
+			break;					\
 		hlist_for_each_entry(P, &security_hook_heads.FUNC, list) { \
 			RC = P->hook.FUNC(__VA_ARGS__);		\
 			if (RC != 0)				\
@@ -1732,6 +1743,22 @@ void security_cred_free(struct cred *cred)
 	kfree(cred->security);
 	cred->security = NULL;
 }
+
+#ifdef CONFIG_KDP_CRED
+void security_cred_free_hook(struct cred *cred)
+{
+	/*
+	 * There is a failure case in prepare_creds() that
+	 * may result in a call here with ->security being NULL.
+	 */
+	if (unlikely(cred == NULL || cred->security == NULL))
+		return;
+
+	BUG_ON(!is_kdp_protect_addr((unsigned long)cred));
+
+	call_void_hook(cred_free, cred);
+}
+#endif
 
 int security_prepare_creds(struct cred *new, const struct cred *old, gfp_t gfp)
 {

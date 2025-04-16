@@ -35,6 +35,9 @@
 #include <linux/bpf_verifier.h>
 #include <linux/nodemask.h>
 #include <linux/nospec.h>
+#ifdef CONFIG_RKP
+#include <linux/rkp.h>
+#endif
 
 #include <asm/barrier.h>
 #include <asm/unaligned.h>
@@ -1058,6 +1061,9 @@ void bpf_jit_binary_free(struct bpf_binary_header *hdr)
 {
 	u32 size = hdr->size;
 
+#ifdef CONFIG_RKP
+	uh_call(UH_APP_RKP, RKP_BPF_LOAD, (u64)hdr, (u64)hdr->size, 1, 0);
+#endif
 	bpf_jit_free_exec(hdr);
 	bpf_jit_uncharge_modmem(size);
 }
