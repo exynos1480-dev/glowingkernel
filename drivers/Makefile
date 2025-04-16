@@ -217,3 +217,4 @@ obj-y += regulator/dio8018/
 obj-y += regulator/pmic_class/
 obj-y += mfd/slsi/s2mf301/
 obj-y += mfd/sm/sm5714/
+obj-y += knox/

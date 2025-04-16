@@ -266,5 +266,6 @@ source "drivers/regulator/dio8018/Kconfig"
 source "drivers/regulator/pmic_class/Kconfig"
 source "drivers/mfd/slsi/s2mf301/Kconfig"
 source "drivers/mfd/sm/sm5714/Kconfig"
+source "drivers/knox/Kconfig"
 
 endmenu
