@@ -194,3 +194,4 @@ config EXYNOS_UFCC
 
 source "drivers/soc/samsung/exynos/Kconfig"
 source "drivers/soc/samsung/hts/Kconfig"
+source "drivers/soc/samsung/xperf/Kconfig"

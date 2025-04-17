@@ -44,3 +44,6 @@ obj-$(CONFIG_SOC_SAMSUNG)       += exynos/
 
 # H/W Tailoring System
 obj-$(CONFIG_HTS)		+= hts/
+
+# Exynos CPU Performance
+obj-$(CONFIG_EXYNOS_PERF)       += xperf/
