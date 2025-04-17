@@ -59,3 +59,6 @@ obj-$(CONFIG_EXYNOS_S2MPU)		+= exynos-s2mpu.o
 
 # Exynos Hypervisor
 obj-$(CONFIG_EXYNOS_HYP)		+= exynos-hyp/
+
+# Exynos MCINFO
+obj-$(CONFIG_EXYNOS_MCINFO)             += exynos-mcinfo.o

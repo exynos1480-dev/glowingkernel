@@ -194,6 +194,15 @@ config EXYNOS_HYP_S2MPU
 	help
 	  Exynos S2MPU module driver for protected KVM.
 
+config EXYNOS_MCINFO
+        tristate "Exynos memory controller information"
+        default m
+
+config MCINFO_SYSFS
+        bool "Exynos memory controller information sysfs"
+        depends on EXYNOS_MCINFO
+        default y if SYSFS
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/dm/Kconfig"
