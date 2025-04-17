@@ -40,3 +40,6 @@ obj-$(CONFIG_EXYNOS_ESCAV2)		+= esca_v2/
 obj-$(CONFIG_EXYNOS_PD)			+= exynos-pd/
 
 obj-$(CONFIG_EXYNOS_PM) 		+= exynos-pm/
+
+# GNSSIF
+obj-$(CONFIG_EXYNOS_GNSS_IF)		+= gnssif/
