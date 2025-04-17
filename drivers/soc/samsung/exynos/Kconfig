@@ -143,6 +143,12 @@ config EXYNOS_CHIPID_V2
 	  Exynos chipid V2 driver.
 	  Support newly added soc chipid.
 
+config EXYNOS_CRYPTOMANAGER
+	tristate "Exynos Samsung CryptoManager"
+	default m
+	help
+	  Support Exynos Samsung CryptoManager
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/cpif/Kconfig"
