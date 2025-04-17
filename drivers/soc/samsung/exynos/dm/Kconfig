@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+
+config EXYNOS_DVFS_MANAGER
+	tristate "Exynos DVFS Manager"
+	help
+	  Enable DVFS Manager for Exynos SoC.
+	  This module controls constraint between each DVFS domains.
+
+config EXYNOS_ESCA_DVFS_MANAGER
+	tristate "Exynos ESCA DVFS Manager"
+	help
+	  Enable ESCA DVFS Manager for Exynos SoC.
+	  This module controls constraint between each DVFS domains.

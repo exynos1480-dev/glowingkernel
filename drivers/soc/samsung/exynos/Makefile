@@ -28,3 +28,6 @@ obj-$(CONFIG_EXYNOS_CHIPID_V2)		+= exynos-chipid_v2.o
 
 # Exynos CryptoManager
 obj-$(CONFIG_EXYNOS_CRYPTOMANAGER)	+= exynos-cm.o
+
+# DVFS Manager
+obj-y					+= dm/

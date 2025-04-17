@@ -151,4 +151,5 @@ config EXYNOS_CRYPTOMANAGER
 
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
+source "drivers/soc/samsung/exynos/dm/Kconfig"
 source "drivers/soc/samsung/exynos/cpif/Kconfig"
