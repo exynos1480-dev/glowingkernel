@@ -1123,10 +1123,10 @@ static int armv8pmu_probe_pmu(struct arm_pmu *cpu_pmu)
 		.present = false,
 	};
 	int ret;
+	int cpu;
 
-	ret = smp_call_function_any(&cpu_pmu->supported_cpus,
-				    __armv8pmu_probe_pmu,
-				    &probe, 1);
+	cpu = cpumask_any_and(&cpu_pmu->supported_cpus, cpu_online_mask);
+	ret = smp_call_function_single(cpu, __armv8pmu_probe_pmu, &probe, 1);
 	if (ret)
 		return ret;
 
