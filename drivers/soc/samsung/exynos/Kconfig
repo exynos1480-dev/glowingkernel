@@ -155,6 +155,13 @@ config EXYNOS_PM_QOS
 	help
 	  Support Exynos PM QOS
 
+config EXYNOS_EL2
+	tristate "Exynos EL2 Solution"
+	depends on ARCH_EXYNOS
+	help
+	  Exynos EL2 Solution has implemented Stage 2
+	  MMU and IOMMU.
+
 config EXYNOS_HYP
 	tristate "Exynos Hypervisor Solution"
 	depends on ARCH_EXYNOS
@@ -167,18 +174,25 @@ config EXYNOS_HYP_MODULE
 	help
 	  Exynos Hypervisor pKVM module.
 
+config EXYNOS_S2MPU
+        tristate "Exynos Stage 2 Memory Protection Unit(S2MPU)"
+	depends on EXYNOS_EL2
+        help
+          Exynos S2MPU driver to set S2MPU access permission.
+
+config EXYNOS_S2MPU_PD
+	bool "Exynos S2MPU PM domain support"
+	depends on EXYNOS_S2MPU
+	default y
+	help
+	  Backup and restore S2MPU when PM domains
+	  turn on and off.
+
 config EXYNOS_HYP_S2MPU
 	tristate "Exynos S2MPU Module for pKVM"
 	depends on (EXYNOS_S2MPU && EXYNOS_HYP_MODULE)
 	help
 	  Exynos S2MPU module driver for protected KVM.
-
-config EXYNOS_EL2
-	tristate "Exynos EL2 Solution"
-	depends on ARCH_EXYNOS
-	help
-	  Exynos EL2 Solution has implemented Stage 2
-	  MMU and IOMMU.
 
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"

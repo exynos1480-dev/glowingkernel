@@ -51,8 +51,11 @@ obj-$(CONFIG_EXYNOS_PM_QOS)		+= pm_qos/
 # Profiler Multi IP Governor
 obj-$(CONFIG_EXYNOS_MAIN_PROFILER)	+= profiler/
 
-# Exynos Hypervisor
-obj-$(CONFIG_EXYNOS_HYP)		+= exynos-hyp/
-
 # Exynos EL2
 obj-$(CONFIG_EXYNOS_EL2)		+= exynos-el2.o
+
+# Exynos S2MPU
+obj-$(CONFIG_EXYNOS_S2MPU)		+= exynos-s2mpu.o
+
+# Exynos Hypervisor
+obj-$(CONFIG_EXYNOS_HYP)		+= exynos-hyp/
