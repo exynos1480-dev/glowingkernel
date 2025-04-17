@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+
+config ECT
+	tristate "Enable Exynos Characteristic Table File"
+	default n
+	help
+	Support ECT for Exynos SoC.

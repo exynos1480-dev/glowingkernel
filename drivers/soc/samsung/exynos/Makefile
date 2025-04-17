@@ -31,3 +31,6 @@ obj-$(CONFIG_EXYNOS_CRYPTOMANAGER)	+= exynos-cm.o
 
 # DVFS Manager
 obj-y					+= dm/
+
+# ECT
+obj-$(CONFIG_ECT)               	+= ect_parser/
