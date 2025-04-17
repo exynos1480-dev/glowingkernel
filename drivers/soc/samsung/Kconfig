@@ -193,3 +193,4 @@ config EXYNOS_UFCC
 	  Control Frequency & C-state by user
 
 source "drivers/soc/samsung/exynos/Kconfig"
+source "drivers/soc/samsung/hts/Kconfig"

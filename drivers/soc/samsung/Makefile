@@ -41,3 +41,6 @@ exynos_sci-$(CONFIG_EXYNOS_LLCGOV)	+= exynos-llcgov.o
 obj-$(CONFIG_EXYNOS_UFCC)	+= exynos-ufcc.o
 
 obj-$(CONFIG_SOC_SAMSUNG)       += exynos/
+
+# H/W Tailoring System
+obj-$(CONFIG_HTS)		+= hts/
