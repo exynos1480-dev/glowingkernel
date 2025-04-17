@@ -136,6 +136,13 @@ config EXYNOS_WOW
 	help
 	  Exynos Workload Wather (WoW) driver support
 
+config EXYNOS_CHIPID_V2
+	tristate "Exynos Chipid controller driver v2"
+	depends on ARCH_EXYNOS
+	help
+	  Exynos chipid V2 driver.
+	  Support newly added soc chipid.
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/cpif/Kconfig"

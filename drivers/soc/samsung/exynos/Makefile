@@ -22,3 +22,6 @@ obj-$(CONFIG_EXYNOS_WOW)       		+= exynos-wow.o
 
 # CPIF
 obj-$(CONFIG_EXYNOS_MODEM_IF)		+= cpif/
+
+# Exynos Chipid V2
+obj-$(CONFIG_EXYNOS_CHIPID_V2)		+= exynos-chipid_v2.o
