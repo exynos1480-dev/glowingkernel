@@ -14,6 +14,7 @@
 #include <linux/kallsyms.h>
 #include <linux/stacktrace.h>
 #include <linux/interrupt.h>
+#include <linux/sec_debug.h>
 
 /**
  * stack_trace_print - Print the entries in the stack trace
@@ -33,6 +34,21 @@ void stack_trace_print(const unsigned long *entries, unsigned int nr_entries,
 		printk("%*c%pS\n", 1 + spaces, ' ', (void *)entries[i]);
 }
 EXPORT_SYMBOL_GPL(stack_trace_print);
+
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+void stack_trace_print_auto_comment(const unsigned long *entries, unsigned int nr_entries,
+		       int spaces)
+{
+	unsigned int i;
+
+	if (WARN_ON(!entries))
+		return;
+
+	pr_auto_once(2);
+	for (i = 0; i < nr_entries; i++)
+		pr_auto(ASL2, "%*c%pS\n", 1 + spaces, ' ', (void *)entries[i]);
+}
+#endif
 
 /**
  * stack_trace_snprint - Print the entries in the stack trace into a buffer

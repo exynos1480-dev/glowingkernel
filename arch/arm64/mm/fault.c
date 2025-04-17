@@ -311,7 +311,7 @@ static void die_kernel_fault(const char *msg, unsigned long addr,
 {
 	bust_spinlocks(1);
 
-	pr_alert("Unable to handle kernel %s at virtual address %016lx\n", msg,
+	pr_auto(ASL1, "Unable to handle kernel %s at virtual address %016lx\n", msg,
 		 addr);
 
 	kasan_non_canonical_hook(addr);
@@ -742,6 +742,20 @@ static int do_bad(unsigned long far, unsigned long esr, struct pt_regs *regs)
 	return 1; /* "fault" */
 }
 
+#define __is_in_kernel_image(addr)					\
+	((unsigned long)(addr) >= (unsigned long)KERNEL_START &&	\
+	 (unsigned long)(addr) <= (unsigned long)KERNEL_END)
+
+static phys_addr_t show_virt_to_phys(unsigned long addr)
+{
+	if (!is_vmalloc_or_module_addr((void *)addr) ||
+			__is_in_kernel_image(addr))
+		return __pa(addr);
+	else
+		return page_to_phys(vmalloc_to_page((void *)addr)) +
+		       offset_in_page(addr);
+}
+
 static int do_sea(unsigned long far, unsigned long esr, struct pt_regs *regs)
 {
 	const struct fault_info *inf;
@@ -771,6 +785,15 @@ static int do_sea(unsigned long far, unsigned long esr, struct pt_regs *regs)
 		 * so that userspace doesn't see them.
 		 */
 		siaddr  = untagged_addr(far);
+	}
+	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV)) {
+		if (esr & ESR_ELx_FnV)
+			pr_auto(ASL1, "%s (0x%08lx), FAR not valid\n",
+				      inf->name, esr);
+		else
+			pr_auto(ASL1, "%s (0x%08lx) at 0x%016lx[0x%09llx]\n",
+				      inf->name, esr, siaddr,
+				      show_virt_to_phys(siaddr));
 	}
 	trace_android_rvh_do_sea(siaddr, esr, regs);
 	arm64_notify_die(inf->name, regs, inf->sig, inf->code, siaddr, esr);
@@ -880,6 +903,11 @@ NOKPROBE_SYMBOL(do_mem_abort);
 
 void do_sp_pc_abort(unsigned long addr, unsigned long esr, struct pt_regs *regs)
 {
+	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs))
+		pr_auto(ASL1, "%s exception: pc=0x%016llx sp=0x%016llx\n",
+			esr_get_class_string(esr),
+			regs->pc, regs->sp);
+
 	trace_android_rvh_do_sp_pc_abort(addr, esr, regs);
 
 	arm64_notify_die("SP/PC alignment exception", regs, SIGBUS, BUS_ADRALN,

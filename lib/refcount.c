@@ -12,6 +12,12 @@
 
 void refcount_warn_saturate(refcount_t *r, enum refcount_saturation_type t)
 {
+#if IS_ENABLED(CONFIG_SEC_DEBUG)
+	int new_count = refcount_read(r);
+
+	pr_warn_once("%s: refcount was updated to: %d/0x%08x\n", __func__,
+			new_count, new_count);
+#endif
 	refcount_set(r, REFCOUNT_SATURATED);
 
 	switch (t) {

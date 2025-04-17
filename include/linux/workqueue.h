@@ -481,6 +481,10 @@ extern void show_all_workqueues(void);
 extern void show_one_workqueue(struct workqueue_struct *wq);
 extern void wq_worker_comm(char *buf, size_t size, struct task_struct *task);
 
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SSLD_INFO)
+extern int find_in_flight_task_in_one_workqueue(struct workqueue_struct *wq, struct task_struct *tsk_array[], work_func_t curr_func[], int max_count);
+#endif
+
 /**
  * queue_work - queue work on a workqueue
  * @wq: workqueue to use

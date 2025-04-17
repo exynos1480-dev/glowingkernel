@@ -30,6 +30,8 @@
 
 #include <asm/softirq_stack.h>
 
+#include <linux/sec_debug.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/irq.h>
 
@@ -612,11 +614,14 @@ restart:
 	while ((softirq_bit = ffs(pending))) {
 		unsigned int vec_nr;
 		int prev_count;
+		unsigned int __maybe_unused pcount;
 
 		h += softirq_bit - 1;
 
 		vec_nr = h - softirq_vec;
 		prev_count = preempt_count();
+
+		secdbg_prep_preempt_count(PCHECK_SOFTIRQ_ACTION, pcount);
 
 		kstat_incr_softirqs_this_cpu(vec_nr);
 
@@ -629,6 +634,7 @@ restart:
 			       prev_count, preempt_count());
 			preempt_count_set(prev_count);
 		}
+		secdbg_check_preempt_count(PCHECK_SOFTIRQ_ACTION, pcount, h->action);
 		h++;
 		pending >>= softirq_bit;
 	}
@@ -840,6 +846,7 @@ static void tasklet_action_common(struct softirq_action *a,
 				  unsigned int softirq_nr)
 {
 	struct tasklet_struct *list;
+	unsigned int __maybe_unused pcount;
 
 	local_irq_disable();
 	list = tl_head->head;
@@ -855,6 +862,7 @@ static void tasklet_action_common(struct softirq_action *a,
 		if (tasklet_trylock(t)) {
 			if (!atomic_read(&t->count)) {
 				if (tasklet_clear_sched(t)) {
+					secdbg_prep_preempt_count(PCHECK_TASKLET_ACTION, pcount);
 					if (t->use_callback) {
 						trace_tasklet_entry(t->callback);
 						t->callback(t);
@@ -864,6 +872,9 @@ static void tasklet_action_common(struct softirq_action *a,
 						t->func(t->data);
 						trace_tasklet_exit(t->func);
 					}
+					secdbg_check_preempt_count(PCHECK_TASKLET_ACTION, pcount,
+							t->use_callback ? (void *)t->callback :
+									  (void *)t->func);
 				}
 				tasklet_unlock(t);
 				continue;

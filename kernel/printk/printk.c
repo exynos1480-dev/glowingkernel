@@ -428,6 +428,19 @@ static struct printk_ringbuffer printk_rb_dynamic;
 static struct printk_ringbuffer *prb = &printk_rb_static;
 
 /*
+ * We do not locate this variable in CONFIG_SEC_DEBUG block, because
+ * it can be parsed without sec_debug lego module. And it should be extern
+ * to prevent optimization.
+ */
+struct {
+	struct printk_ringbuffer **pprb;
+	char name[];
+} __prb_name = {
+	.pprb = &prb,
+	.name = "!PRINTK_RINGBUFFER!",
+};
+
+/*
  * We cannot access per-CPU data (e.g. per-CPU flush irq_work) before
  * per_cpu_areas are initialised. This variable is set to true when
  * it's safe to access per-CPU data.
@@ -475,6 +488,19 @@ u32 log_buf_len_get(void)
 {
 	return log_buf_len;
 }
+
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+static void (*func_hook_auto_comm)(int type, struct printk_ringbuffer *rb,
+					struct printk_record *r);
+static DEFINE_SPINLOCK(auto_comm_lock);
+
+void register_set_auto_comm_buf(void (*func)(int type,
+					struct printk_ringbuffer *rb,
+					struct printk_record *r))
+{
+	func_hook_auto_comm = func;
+}
+#endif
 
 /*
  * Define how much of the log buffer we could take at maximum. The value
@@ -2104,6 +2130,12 @@ u16 printk_parse_prefix(const char *text, int *level,
 			if (level && *level == LOGLEVEL_DEFAULT)
 				*level = kern_level - '0';
 			break;
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+		case 'B' ... 'J':
+			if (level && *level == LOGLEVEL_DEFAULT)
+				*level = LOGLEVEL_PR_AUTO_BASE + (kern_level - 'A'); /* 91 ~ 99 */
+			break;
+#endif
 		case 'c':	/* KERN_CONT */
 			if (flags)
 				*flags |= LOG_CONT;
@@ -2167,6 +2199,10 @@ int vprintk_store(int facility, int level,
 	u16 text_len;
 	int ret = 0;
 	u64 ts_nsec;
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+	bool is_auto_comm = false;
+	int type_auto_comm;
+#endif
 
 	if (!printk_enter_irqsave(recursion_ptr, irqflags))
 		return 0;
@@ -2203,6 +2239,14 @@ int vprintk_store(int facility, int level,
 
 	if (dev_info)
 		flags |= LOG_NEWLINE;
+
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+	if (level / 10 == 9) {
+		is_auto_comm = true;
+		type_auto_comm = level - LOGLEVEL_PR_AUTO_BASE;
+		level = 0;
+	}
+#endif
 
 	if (flags & LOG_CONT) {
 		prb_rec_init_wr(&r, reserve_size);
@@ -2256,6 +2300,14 @@ int vprintk_store(int facility, int level,
 		prb_commit(&e);
 	else
 		prb_final_commit(&e);
+
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+	if (is_auto_comm && func_hook_auto_comm) {
+		spin_lock(&auto_comm_lock);
+		func_hook_auto_comm(type_auto_comm, prb, &r);
+		spin_unlock(&auto_comm_lock);
+	}
+#endif
 
 	ret = text_len + trunc_msg_len;
 out:

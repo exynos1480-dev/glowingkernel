@@ -30,6 +30,7 @@
 #include <linux/swiotlb.h>
 #include <linux/sysfs.h>
 #include <linux/dma-map-ops.h> /* for dma_default_coherent */
+#include <linux/sec_debug.h>
 
 #include "base.h"
 #include "physical_location.h"
@@ -4824,6 +4825,7 @@ void device_shutdown(void)
 		dev = list_entry(devices_kset->list.prev, struct device,
 				kobj.entry);
 
+		secdbg_base_built_set_shutdown_device(__func__, dev_name(dev));
 		/*
 		 * hold reference count of device's parent to
 		 * prevent it from being freed because parent's
@@ -4871,6 +4873,7 @@ void device_shutdown(void)
 
 		spin_lock(&devices_kset->list_lock);
 	}
+	secdbg_base_built_set_shutdown_device(NULL, NULL);
 	spin_unlock(&devices_kset->list_lock);
 }
 

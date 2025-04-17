@@ -19,6 +19,8 @@
 
 #include <asm/kfence.h>
 
+#include <linux/sec_debug.h>
+
 #include "kfence.h"
 
 /* May be overridden by <asm/kfence.h>. */
@@ -221,7 +223,7 @@ void kfence_report_error(unsigned long address, bool is_write, struct pt_regs *r
 	case KFENCE_ERROR_OOB: {
 		const bool left_of_object = address < meta->addr;
 
-		pr_err("BUG: KFENCE: out-of-bounds %s in %pS\n\n", get_access_type(is_write),
+		pr_auto(ASL1, "BUG: KFENCE: out-of-bounds %s in %pS\n\n", get_access_type(is_write),
 		       (void *)stack_entries[skipnr]);
 		pr_err("Out-of-bounds %s at 0x%p (%luB %s of kfence-#%td):\n",
 		       get_access_type(is_write), (void *)address,
@@ -230,32 +232,41 @@ void kfence_report_error(unsigned long address, bool is_write, struct pt_regs *r
 		break;
 	}
 	case KFENCE_ERROR_UAF:
-		pr_err("BUG: KFENCE: use-after-free %s in %pS\n\n", get_access_type(is_write),
+		pr_auto(ASL1, "BUG: KFENCE: use-after-free %s in %pS\n\n", get_access_type(is_write),
 		       (void *)stack_entries[skipnr]);
 		pr_err("Use-after-free %s at 0x%p (in kfence-#%td):\n",
 		       get_access_type(is_write), (void *)address, object_index);
 		break;
 	case KFENCE_ERROR_CORRUPTION:
-		pr_err("BUG: KFENCE: memory corruption in %pS\n\n", (void *)stack_entries[skipnr]);
+		pr_auto(ASL1, "BUG: KFENCE: memory corruption in %pS\n\n", (void *)stack_entries[skipnr]);
 		pr_err("Corrupted memory at 0x%p ", (void *)address);
 		print_diff_canary(address, 16, meta);
 		pr_cont(" (in kfence-#%td):\n", object_index);
 		break;
 	case KFENCE_ERROR_INVALID:
-		pr_err("BUG: KFENCE: invalid %s in %pS\n\n", get_access_type(is_write),
+		pr_auto(ASL1, "BUG: KFENCE: invalid %s in %pS\n\n", get_access_type(is_write),
 		       (void *)stack_entries[skipnr]);
 		pr_err("Invalid %s at 0x%p:\n", get_access_type(is_write),
 		       (void *)address);
 		break;
 	case KFENCE_ERROR_INVALID_FREE:
-		pr_err("BUG: KFENCE: invalid free in %pS\n\n", (void *)stack_entries[skipnr]);
+		pr_auto(ASL1, "BUG: KFENCE: invalid free in %pS\n\n", (void *)stack_entries[skipnr]);
 		pr_err("Invalid free of 0x%p (in kfence-#%td):\n", (void *)address,
 		       object_index);
 		break;
 	}
 
 	/* Print stack trace and object info. */
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+	if (panic_on_warn)
+		stack_trace_print_auto_comment(
+			  stack_entries + skipnr, num_stack_entries - skipnr, 0);
+	else
+		stack_trace_print(
+			  stack_entries + skipnr, num_stack_entries - skipnr, 0);
+#else
 	stack_trace_print(stack_entries + skipnr, num_stack_entries - skipnr, 0);
+#endif
 
 	if (meta) {
 		pr_err("\n");

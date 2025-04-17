@@ -19,6 +19,9 @@
 
 extern void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 			   const char *loglvl);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+extern void dump_backtrace_auto_comment(struct pt_regs *regs, struct task_struct *tsk);
+#endif
 
 DECLARE_PER_CPU(unsigned long *, irq_stack_ptr);
 

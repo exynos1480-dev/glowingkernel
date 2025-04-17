@@ -65,6 +65,10 @@ void arch_stack_walk_user(stack_trace_consume_fn consume_entry, void *cookie,
 #ifdef CONFIG_STACKTRACE
 void stack_trace_print(const unsigned long *trace, unsigned int nr_entries,
 		       int spaces);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+void stack_trace_print_auto_comment(const unsigned long *entries, unsigned int nr_entries,
+		       int spaces);
+#endif
 int stack_trace_snprint(char *buf, size_t size, const unsigned long *entries,
 			unsigned int nr_entries, int spaces);
 unsigned int stack_trace_save(unsigned long *store, unsigned int size,

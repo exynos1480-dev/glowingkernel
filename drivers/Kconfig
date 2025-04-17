@@ -239,4 +239,8 @@ source "drivers/peci/Kconfig"
 
 source "drivers/hte/Kconfig"
 
+# Samsung drivers
+source "drivers/samsung/Kconfig"
+source "drivers/samsung/debug/Kconfig"
+
 endmenu

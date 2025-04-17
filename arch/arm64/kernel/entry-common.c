@@ -27,6 +27,8 @@
 #include <asm/sysreg.h>
 #include <asm/system_misc.h>
 
+#include <linux/sec_debug.h>
+
 #include <trace/hooks/traps.h>
 
 /*
@@ -141,6 +143,7 @@ static __always_inline void prepare_exit_to_user_mode(struct pt_regs *regs)
 
 static __always_inline void exit_to_user_mode(struct pt_regs *regs)
 {
+	secdbg_check_preempt_count(PCHECK_EXIT_TO_USER, (unsigned int)0x0, (void *)_RET_IP_);
 	prepare_exit_to_user_mode(regs);
 	mte_check_tfsr_exit();
 	__exit_to_user_mode();
@@ -290,7 +293,7 @@ static void noinstr __panic_unhandled(struct pt_regs *regs, const char *vector,
 
 	console_verbose();
 
-	pr_crit("Unhandled %s exception on CPU%d, ESR 0x%016lx -- %s\n",
+	pr_auto(ASL1, "Unhandled %s exception on CPU%d, ESR 0x%016lx -- %s\n",
 		vector, smp_processor_id(), esr,
 		esr_get_class_string(esr));
 
@@ -848,6 +851,7 @@ asmlinkage void noinstr handle_bad_stack(struct pt_regs *regs)
 	unsigned long esr = read_sysreg(esr_el1);
 	unsigned long far = read_sysreg(far_el1);
 
+	secdbg_base_built_check_handle_bad_stack();
 	arm64_enter_nmi(regs);
 	panic_bad_stack(regs, esr, far);
 }

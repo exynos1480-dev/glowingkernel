@@ -108,6 +108,22 @@ asmlinkage __visible void dump_stack_lvl(const char *log_lvl)
 }
 EXPORT_SYMBOL(dump_stack_lvl);
 
+#if IS_ENABLED(CONFIG_SEC_DEBUG_AUTO_COMMENT)
+void dump_stack_auto_comment(void)
+{
+	unsigned long flags;
+
+	/*
+	 * Permit this cpu to perform nested stack dumps while serialising
+	 * against other CPUs
+	 */
+	printk_cpu_sync_get_irqsave(flags);
+	dump_stack_print_info(KERN_DEFAULT);
+	show_stack_auto_comment(NULL, NULL);
+	printk_cpu_sync_put_irqrestore(flags);
+}
+#endif
+
 asmlinkage __visible void dump_stack(void)
 {
 	dump_stack_lvl(KERN_DEFAULT);
