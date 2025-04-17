@@ -62,7 +62,7 @@ static size_t free_one_item(enum df_reason reason)
 	return nr_pages;
 }
 
-static unsigned long get_freelist_nr_pages(void)
+unsigned long get_freelist_nr_pages(void)
 {
 	unsigned long nr_pages;
 	unsigned long flags;
