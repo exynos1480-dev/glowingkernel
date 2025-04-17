@@ -34,3 +34,5 @@ obj-y					+= dm/
 
 # ECT
 obj-$(CONFIG_ECT)               	+= ect_parser/
+
+obj-$(CONFIG_EXYNOS_ESCAV2)		+= esca_v2/
