@@ -303,4 +303,6 @@ config POWER_MLXBF
 	help
 	  This driver supports reset or low power mode handling for Mellanox BlueField.
 
+source "drivers/power/reset/exynos/Kconfig"
+
 endif
