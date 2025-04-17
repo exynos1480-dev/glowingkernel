@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+
+config EXYNOS_PM
+	tristate "Enable Exynos PM"
+	help
+	Support EXYNOS_PM for Exynos SoC.
+
+config EXYNOS_S2I
+	tristate "Enable Exynos Suspend to IDLE"
+	help
+	Support EXYNOS_S2I for Exynos SoC.
+
