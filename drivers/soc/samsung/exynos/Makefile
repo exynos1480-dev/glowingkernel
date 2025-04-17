@@ -43,3 +43,4 @@ obj-$(CONFIG_EXYNOS_PM) 		+= exynos-pm/
 
 # GNSSIF
 obj-$(CONFIG_EXYNOS_GNSS_IF)		+= gnssif/
+obj-$(CONFIG_EXYNOS_GNSS_IF_SPI)       	+= gnssif_spi/
