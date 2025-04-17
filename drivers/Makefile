@@ -193,3 +193,5 @@ obj-$(CONFIG_HTE)		+= hte/
 # Samsung drivers
 obj-y += samsung/
 obj-y += samsung/debug/
+obj-y += samsung/pm/sec_thermistor/
+
