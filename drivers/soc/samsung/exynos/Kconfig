@@ -155,6 +155,24 @@ config EXYNOS_PM_QOS
 	help
 	  Support Exynos PM QOS
 
+config EXYNOS_HYP
+	tristate "Exynos Hypervisor Solution"
+	depends on ARCH_EXYNOS
+	help
+	  Exynos Hypervisor Solution based on pKVM and pKVM module.
+
+config EXYNOS_HYP_MODULE
+	tristate "Exynos Hypervisor Module"
+	depends on EXYNOS_HYP
+	help
+	  Exynos Hypervisor pKVM module.
+
+config EXYNOS_HYP_S2MPU
+	tristate "Exynos S2MPU Module for pKVM"
+	depends on (EXYNOS_S2MPU && EXYNOS_HYP_MODULE)
+	help
+	  Exynos S2MPU module driver for protected KVM.
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/dm/Kconfig"
