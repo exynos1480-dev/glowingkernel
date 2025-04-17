@@ -5,6 +5,7 @@
 # Licensed under GPLv2
 
 source "drivers/samsung/pm/Kconfig"
+source "drivers/samsung/factory/Kconfig"
 
 menuconfig SEC_DEBUG
 	tristate "Enable Samsung Debugging features"

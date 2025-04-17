@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0
+config SEC_FACTORY_INTERPOSER
+	bool "Samsung Factory interposer binary"
+	default n
+	help
+	  Samsung Factory interposer binary.
+
+config SEC_RELOC_GPIO
+	tristate "Samsung Legacy-Style Relocated GPIO Interface for Factory Mode"
+	default n
+	depends on DRV_SAMSUNG
+	help
+    Samsung Legacy-Style Relocated GPIO Interface for Factory Mode
