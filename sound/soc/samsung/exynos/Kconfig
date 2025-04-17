@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SND_SOC_SAMSUNG_EXYNOS8825_S5M3700X_I2C
+	tristate "S5M3700X support on exynos8825 with i2c bus"
+	select SND_SOC_S5M3700X
+	select SND_SOC_S5M3700X_DUMP
+	select SND_SOC_S5M3700X_VTS
+	select SND_SOC_S5M3700X_HIFI
+
+config SND_SOC_SAMSUNG_EXYNOS_TFA9874
+	tristate "TFA9874 amp support on exynos"
+	select SND_SOC_TFA9874
+	select FW_LOADER_USER_HELPER
+	select FW_LOADER_USER_HELPER_FALLBACK
+
+config SND_SOC_SAMSUNG_EXYNOS_TAS25XX
+	tristate "TAS25XX amp support on exynos"
+	select SND_SOC_TAS25XX
+	select TAS25XX_ALGO
+	select TAS25XX_CALIB_VAL_BIG
+	select SEC_SND_SYNCHRONIZED_IPC_TI
+	select PLATFORM_EXYNOS
+
+config SND_SOC_SAMSUNG_EXYNOS_TFA9878
+	tristate "TFA9878 amp support on exynos"
+	select SND_SOC_TFA98XX
+	select SND_SOC_TFA9878
+	select FW_LOADER_USER_HELPER
+	select SEC_SND_SYNCHRONIZED_IPC
+
+config SND_SOC_SAMSUNG_EXYNOS8845_SOUND
+       tristate "Sound card support on exynos8845"
+       select SND_SOC_SAMSUNG_ABOX
+       select SND_SOC_SAMSUNG_VTS
+       select SND_SOC_SAMSUNG_MAILBOX
+       select SND_SOC_SAMSUNG_SLIF
+#       select SND_SOC_SAMSUNG_DISPLAYPORT
+
+source "sound/soc/samsung/exynos/abox/Kconfig"
