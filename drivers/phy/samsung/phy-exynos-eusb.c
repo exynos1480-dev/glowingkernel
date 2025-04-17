@@ -21,7 +21,7 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 
-#include <phy-samsung-usb-cal.h>
+#include "phy-samsung-usb-cal.h"
 
 #include "eusb-con-reg.h"
 #include "eusb-phy-reg.h"

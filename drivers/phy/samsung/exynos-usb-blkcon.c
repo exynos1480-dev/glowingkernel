@@ -19,7 +19,7 @@
 #include <linux/types.h>
 #include <linux/delay.h>
 #include <linux/io.h>
-#include <phy-samsung-usb-cal.h>
+#include "phy-samsung-usb-cal.h"
 
 #include "exynos-usb-blkcon-sfr.h"
 
