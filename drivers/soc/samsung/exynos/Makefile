@@ -47,3 +47,6 @@ obj-$(CONFIG_EXYNOS_GNSS_IF_SPI)       	+= gnssif_spi/
 
 # EXYNOS_PM_QOS
 obj-$(CONFIG_EXYNOS_PM_QOS)		+= pm_qos/
+
+# Profiler Multi IP Governor
+obj-$(CONFIG_EXYNOS_MAIN_PROFILER)	+= profiler/
