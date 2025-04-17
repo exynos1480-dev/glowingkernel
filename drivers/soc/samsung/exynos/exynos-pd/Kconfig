@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+
+config EXYNOS_PD
+	tristate "Exynos PM domain Support"
+        depends on CAL_IF && CMUCAL
+	depends on PM
+	select PM_GENERIC_DOMAINS
+
+config EXYNOS_PD_DBG
+	tristate "Exynos PM domain Support"
+        depends on CAL_IF && CMUCAL
+	depends on PM
+	select PM_GENERIC_DOMAINS
+
+config EXYNOS_PD_EL3
+	tristate "Exynos PD Save/Restore"
+	default m
+	help
+	Support Exynos Power Domain Save/Restore
