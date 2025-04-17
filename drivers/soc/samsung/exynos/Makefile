@@ -53,3 +53,6 @@ obj-$(CONFIG_EXYNOS_MAIN_PROFILER)	+= profiler/
 
 # Exynos Hypervisor
 obj-$(CONFIG_EXYNOS_HYP)		+= exynos-hyp/
+
+# Exynos EL2
+obj-$(CONFIG_EXYNOS_EL2)		+= exynos-el2.o

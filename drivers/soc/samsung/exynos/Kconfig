@@ -173,6 +173,13 @@ config EXYNOS_HYP_S2MPU
 	help
 	  Exynos S2MPU module driver for protected KVM.
 
+config EXYNOS_EL2
+	tristate "Exynos EL2 Solution"
+	depends on ARCH_EXYNOS
+	help
+	  Exynos EL2 Solution has implemented Stage 2
+	  MMU and IOMMU.
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/dm/Kconfig"
