@@ -512,6 +512,20 @@ config PINCTRL_ZYNQMP
 	  This driver can also be built as a module. If so, the module
 	  will be called pinctrl-zynqmp.
 
+config PINCTRL_SAMSUNG_S2MPU15_8845
+	tristate "SAMSUNG PMIC pin controller driver for s5e8845"
+	help
+	 This is the pinctrl, pinmux, pinconf and gpiolib driver for the
+	 Samung GPIO found in the Samsung PMIC's chips, which are using
+	 SPMI for communication with SoC.
+
+config PINCTRL_SAMSUNG_S2MPU16_8845
+	tristate "SAMSUNG PMIC pin controller driver for s5e8845"
+	help
+	 This is the pinctrl, pinmux, pinconf and gpiolib driver for the
+	 Samung GPIO found in the Samsung PMIC's chips, which are using
+	 SPMI for communication with SoC.
+
 source "drivers/pinctrl/actions/Kconfig"
 source "drivers/pinctrl/aspeed/Kconfig"
 source "drivers/pinctrl/bcm/Kconfig"
