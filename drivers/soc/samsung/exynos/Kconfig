@@ -149,6 +149,12 @@ config EXYNOS_CRYPTOMANAGER
 	help
 	  Support Exynos Samsung CryptoManager
 
+config EXYNOS_PM_QOS
+	tristate "Exynos PM QOS"
+	default m
+	help
+	  Support Exynos PM QOS
+
 source "drivers/soc/samsung/exynos/acpm/Kconfig"
 source "drivers/soc/samsung/exynos/debug/Kconfig"
 source "drivers/soc/samsung/exynos/dm/Kconfig"
