@@ -1,5 +1,5 @@
 /*
- *  drivers/switch/switch_gpio.c
+ * switch_gpio.c
  *
  * Copyright (C) 2008 Google, Inc.
  * Author: Mike Lockwood <lockwood@android.com>
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
-*/
+ */
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -21,13 +21,13 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#include <linux/switch.h>
 #include <linux/workqueue.h>
 #include <linux/gpio.h>
+#include <linux/switch.h>
 
 struct gpio_switch_data {
 	struct switch_dev sdev;
-	unsigned gpio;
+	unsigned int gpio;
 	const char *name_on;
 	const char *name_off;
 	const char *state_on;
@@ -60,6 +60,7 @@ static ssize_t switch_gpio_print_state(struct switch_dev *sdev, char *buf)
 	struct gpio_switch_data	*switch_data =
 		container_of(sdev, struct gpio_switch_data, sdev);
 	const char *state;
+
 	if (switch_get_state(sdev))
 		state = switch_data->state_on;
 	else

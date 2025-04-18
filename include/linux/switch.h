@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
-*/
+ */
 
 #ifndef __LINUX_SWITCH_H__
 #define __LINUX_SWITCH_H__
@@ -30,7 +30,7 @@ struct switch_dev {
 
 struct gpio_switch_platform_data {
 	const char *name;
-	unsigned 	gpio;
+	unsigned int gpio;
 
 	/* if NULL, switch_dev.name will be printed */
 	const char *name_on;

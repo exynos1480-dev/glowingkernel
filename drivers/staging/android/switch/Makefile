@@ -1,3 +1,5 @@
-# Switch Class Driver
-obj-$(CONFIG_SWITCH)		+= switch_class.o
-obj-$(CONFIG_SWITCH_GPIO)	+= switch_gpio.o
+# Android Switch Class Driver
+subdir-ccflags-y := -Wformat
+obj-$(CONFIG_ANDROID_SWITCH)		+= sec_switch_class.o
+sec_switch_class-y		:= switch_class.o
+sec_switch_class-$(CONFIG_ANDROID_SWITCH_GPIO)	+= switch_gpio.o

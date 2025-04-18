@@ -1,15 +1,10 @@
-menuconfig SWITCH
-	tristate "Switch class support"
+menuconfig ANDROID_SWITCH
+	tristate "Android Switch class support"
 	help
-	  Say Y here to enable switch class support. This allows
-	  monitoring switches by userspace via sysfs and uevent.
+	  Say Y here to enable Android switch class support.
+	  This allows monitoring switches by userspace via sysfs and uevent.
 
-if SWITCH
-
-config SWITCH_GPIO
-	tristate "GPIO Swith support"
-	depends on GPIOLIB
+config ANDROID_SWITCH_GPIO
+	tristate "Android GPIO Switch support"
 	help
 	  Say Y here to enable GPIO based switch support.
-
-endif # SWITCH
