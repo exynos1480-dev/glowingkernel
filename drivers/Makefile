@@ -195,6 +195,7 @@ obj-$(CONFIG_EXYNOS_BTS)        += bts/
 obj-$(CONFIG_TRUSTONIC_TEE) 	+= gud/
 obj-$(CONFIG_SEC_STI)		+= sti/
 obj-$(CONFIG_UH)		+= uh/
+obj-$(CONFIG_VISION_SUPPORT)    += vision/
 obj-y += samsung/
 obj-y += samsung/debug/
 obj-y += samsung/pm/sec_thermistor/
