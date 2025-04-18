@@ -235,3 +235,4 @@ obj-y += usb/typec/slsi/s2mf301/
 obj-y += usb/typec/sm/sm5714/
 obj-y += sdp/
 obj-y += sec_panel_notifier_v2/
+obj-y += sensorhub/
