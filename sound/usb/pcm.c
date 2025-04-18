@@ -268,6 +268,8 @@ static int start_endpoints(struct snd_usb_substream *subs)
 {
 	int err;
 
+	return 0;
+
 	if (!subs->data_endpoint)
 		return -EINVAL;
 
@@ -677,7 +679,7 @@ static int snd_usb_pcm_prepare(struct snd_pcm_substream *substream)
 	ret = snd_vendor_set_pcm_intf(iface, subs->data_endpoint->iface,
 				      subs->data_endpoint->altsetting,
 				      subs->direction, subs);
-	if (ret)
+	if (!ret)
 		goto unlock;
 
 	/* reset the pointer */
