@@ -36,3 +36,4 @@ config SND_SOC_SAMSUNG_EXYNOS8845_SOUND
 #       select SND_SOC_SAMSUNG_DISPLAYPORT
 
 source "sound/soc/samsung/exynos/abox/Kconfig"
+source "sound/soc/samsung/exynos/vts/Kconfig"
