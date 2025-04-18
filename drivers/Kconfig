@@ -291,5 +291,6 @@ source "drivers/sensorhub/sensorhub/Kconfig"
 source "drivers/sensorhub/vendor/Kconfig"
 source "drivers/vibrator/common/inputff/Kconfig"
 source "drivers/vibrator/common/vib_info/Kconfig"
+source "drivers/vibrator/zinitix/zm918/Kconfig"
 
 endmenu
