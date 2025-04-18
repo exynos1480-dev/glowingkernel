@@ -193,6 +193,7 @@ obj-$(CONFIG_HTE)		+= hte/
 # Samsung drivers
 obj-$(CONFIG_EXYNOS_BTS)        += bts/
 obj-$(CONFIG_TRUSTONIC_TEE) 	+= gud/
+obj-$(CONFIG_SEC_STI)		+= sti/
 obj-$(CONFIG_UH)		+= uh/
 obj-y += samsung/
 obj-y += samsung/debug/
