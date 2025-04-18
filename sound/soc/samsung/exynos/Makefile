@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-$(CONFIG_SND_SOC_SAMSUNG_ABOX) += abox/
 obj-$(CONFIG_SND_SOC_SAMSUNG_MAILBOX) += vts/
+obj-$(CONFIG_SND_SOC_SAMSUNG_SLIF) += slif/
 
 obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8845_SOUND) += exynos8845_sound.o

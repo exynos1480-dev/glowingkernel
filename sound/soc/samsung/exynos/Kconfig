@@ -37,3 +37,4 @@ config SND_SOC_SAMSUNG_EXYNOS8845_SOUND
 
 source "sound/soc/samsung/exynos/abox/Kconfig"
 source "sound/soc/samsung/exynos/vts/Kconfig"
+source "sound/soc/samsung/exynos/slif/Kconfig"
