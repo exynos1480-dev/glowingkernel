@@ -238,3 +238,4 @@ obj-y += sdp/
 obj-y += sec_panel_notifier_v2/
 obj-y += sensorhub/
 obj-y += vibrator/common/inputff/
+obj-y += vibrator/common/vib_info/

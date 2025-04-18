@@ -290,5 +290,6 @@ source "drivers/sensorhub/sensor/Kconfig"
 source "drivers/sensorhub/sensorhub/Kconfig"
 source "drivers/sensorhub/vendor/Kconfig"
 source "drivers/vibrator/common/inputff/Kconfig"
+source "drivers/vibrator/common/vib_info/Kconfig"
 
 endmenu
