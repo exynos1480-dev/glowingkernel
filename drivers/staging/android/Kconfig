@@ -18,6 +18,12 @@ config SAMSUNG_FREECESS
 	help
 	  thraw frozen process when recv sig.
 
+config SAMSUNG_LMKD_DEBUG
+	bool "record lmkd kill history"
+	default y
+	help
+	  record lmkd kill history
+
 endmenu
 
 source "drivers/staging/android/switch/Kconfig"
