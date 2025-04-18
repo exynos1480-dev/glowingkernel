@@ -1,4 +1,9 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: GPL-2.0
+config SND_SOC_SAMSUNG_DISPLAYPORT
+	tristate "Samsung DISPLAYPORT Audio"
+	help
+	  Say Y if you want to use displayport audio.
+
 config SND_SOC_SAMSUNG_EXYNOS8825_S5M3700X_I2C
 	tristate "S5M3700X support on exynos8825 with i2c bus"
 	select SND_SOC_S5M3700X
@@ -34,6 +39,19 @@ config SND_SOC_SAMSUNG_EXYNOS8845_SOUND
        select SND_SOC_SAMSUNG_MAILBOX
        select SND_SOC_SAMSUNG_SLIF
 #       select SND_SOC_SAMSUNG_DISPLAYPORT
+
+config SND_SOC_SAMSUNG_EXYNOS8845_AUDIO
+        tristate "Sound card support on exynos8845"
+        select SND_SOC_SAMSUNG_ABOX
+        select SND_SOC_SAMSUNG_VTS
+        select SND_SOC_SAMSUNG_MAILBOX
+        select SND_SOC_SAMSUNG_SLIF
+#       select SND_SOC_SAMSUNG_DISPLAYPORT
+
+config SND_SOC_SAMSUNG_AUDIO
+	tristate "Audio support for Samsung Projects"
+	help
+	  Say Y here to enable audio support for the Samsung Audio.
 
 source "sound/soc/samsung/exynos/abox/Kconfig"
 source "sound/soc/samsung/exynos/vts/Kconfig"

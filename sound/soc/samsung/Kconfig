@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
+
 menuconfig SND_SOC_SAMSUNG
 	tristate "ASoC support for Samsung"
 	depends on PLAT_SAMSUNG || ARCH_S5PV210 || ARCH_EXYNOS || COMPILE_TEST
@@ -240,6 +241,11 @@ config SND_SOC_SAMSUNG_MIDAS_WM1811
 	select SND_SOC_WM8994
 	help
 	  Say Y if you want to add support for SoC audio on the Midas boards.
+
+config SND_SOC_SAMSUNG_EXYNOS8845_S5M3700X_I2C
+        tristate "S5M3700X support on exynos8845 with i2c bus"
+        select SND_SOC_S5M3700X
+        select SND_SOC_S5M3700X_VTS
 
 source "sound/soc/samsung/exynos/Kconfig"
 
