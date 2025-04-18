@@ -932,7 +932,6 @@ enum ufshcd_mcq_opr {
  *  device is known or not.
  * @wb_mutex: used to serialize devfreq and sysfs write booster toggling
  * @clk_scaling_lock: used to serialize device commands and clock scaling
- * @desc_size: descriptor sizes reported by device
  * @scsi_block_reqs_cnt: reference counting for scsi block requests
  * @bsg_dev: struct device associated with the BSG queue
  * @bsg_queue: BSG queue associated with the UFS controller
@@ -1200,7 +1199,7 @@ static inline size_t ufshcd_sg_entry_size(const struct ufs_hba *hba)
 
 static inline size_t ufshcd_get_ucd_size(const struct ufs_hba *hba)
 {
-	return sizeof(struct utp_transfer_cmd_desc) + SG_ALL * ufshcd_sg_entry_size(hba);
+	return sizeof(struct utp_transfer_cmd_desc) + SG_UFS * ufshcd_sg_entry_size(hba);
 }
 
 /* Returns true if clocks can be gated. Otherwise false */

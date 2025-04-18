@@ -72,7 +72,7 @@ enum {
 #define ADVANCED_RPMB_REQ_TIMEOUT  3000 /* 3 seconds */
 
 /* Task management command timeout */
-#define TM_CMD_TIMEOUT	100 /* msecs */
+#define TM_CMD_TIMEOUT	300 /* msecs */
 
 /* maximum number of retries for a general UIC command  */
 #define UFS_UIC_COMMAND_RETRIES 3
@@ -103,6 +103,9 @@ enum {
 
 /* Polling time to wait for fDeviceInit */
 #define FDEVICEINIT_COMPL_TIMEOUT 1500 /* millisecs */
+
+/* Maximum number that the hardware allows for request. */
+#define UFSHCD_MAX_HW_SECTORS 2048 /* 1 MB */
 
 /* UFSHC 4.0 compliant HC support this mode, refer param_set_mcq_mode() */
 static bool use_mcq_mode = true;
@@ -1974,6 +1977,9 @@ static void __ufshcd_release(struct ufs_hba *hba)
 		return;
 
 	hba->clk_gating.active_reqs--;
+
+	if (hba->clk_gating.active_reqs < 0)
+		hba->clk_gating.active_reqs = 0;
 
 	if (hba->clk_gating.active_reqs || hba->clk_gating.is_suspended ||
 	    hba->ufshcd_state != UFSHCD_STATE_OPERATIONAL ||
@@ -4695,7 +4701,7 @@ static int ufshcd_complete_dev_init(struct ufs_hba *hba)
 					QUERY_FLAG_IDN_FDEVICEINIT, 0, &flag_res);
 		if (!flag_res)
 			break;
-		usleep_range(500, 1000);
+		usleep_range(5000, 10000);
 	} while (ktime_before(ktime_get(), timeout));
 
 	if (err) {
@@ -5258,7 +5264,7 @@ static int ufshcd_slave_configure(struct scsi_device *sdev)
 	 * of messages written back to storage by user space causing runtime
 	 * resume, causing more messages and so on.
 	 */
-	sdev->silence_suspend = 1;
+	sdev->silence_suspend = 0;
 
 	ufshcd_crypto_register(hba, q);
 
@@ -5399,9 +5405,11 @@ ufshcd_transfer_rsp_status(struct ufs_hba *hba, struct ufshcd_lrb *lrbp,
 			 */
 			if (!hba->pm_op_in_progress &&
 			    !ufshcd_eh_in_progress(hba) &&
-			    ufshcd_is_exception_event(lrbp->ucd_rsp_ptr))
+			    ufshcd_is_exception_event(lrbp->ucd_rsp_ptr)) {
 				/* Flushed in suspend */
 				schedule_work(&hba->eeh_work);
+				dev_info(hba->dev, "exception event reported\n");
+			}
 
 			if (scsi_status == SAM_STAT_GOOD)
 				ufshpb_rsp_upiu(hba, lrbp);
@@ -5547,9 +5555,11 @@ void ufshcd_compl_one_cqe(struct ufs_hba *hba, int task_tag,
 			ufshcd_update_monitor(hba, lrbp);
 		ufshcd_add_command_trace(hba, task_tag, UFS_CMD_COMP);
 		cmd->result = ufshcd_transfer_rsp_status(hba, lrbp, cqe);
-		ufshcd_release_scsi_cmd(hba, lrbp);
-		/* Do not touch lrbp after scsi done */
-		scsi_done(cmd);
+		if (ufshcd_cmd_inflight(lrbp->cmd)) {
+			ufshcd_release_scsi_cmd(hba, lrbp);
+			/* Do not touch lrbp after scsi done */
+			scsi_done(cmd);
+		}
 	} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
 		   lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
 		if (hba->dev_cmd.complete) {
@@ -5991,9 +6001,14 @@ static void ufshcd_bkops_exception_event_handler(struct ufs_hba *hba)
 	if (curr_status < BKOPS_STATUS_PERF_IMPACT) {
 		dev_err(hba->dev, "%s: device raised urgent BKOPS exception for bkops status %d\n",
 				__func__, curr_status);
-		/* update the current status as the urgent bkops level */
-		hba->urgent_bkops_lvl = curr_status;
-		hba->is_urgent_bkops_lvl_checked = true;
+		/*
+		 *SEC does not follow this policy that BKOPS is enabled for these events
+		 * update the current status as the urgent bkops level
+		 */
+		//hba->urgent_bkops_lvl = curr_status;
+		//hba->is_urgent_bkops_lvl_checked = true;
+
+		goto out;
 	}
 
 enable_auto_bkops:
@@ -6855,7 +6870,7 @@ static irqreturn_t ufshcd_check_errors(struct ufs_hba *hba, u32 intr_status)
 		ufshcd_set_link_broken(hba);
 		queue_eh_work = true;
 	}
-
+	
 	trace_android_vh_ufs_check_int_errors(hba, queue_eh_work);
 
 	if (queue_eh_work) {
@@ -8989,9 +9004,10 @@ static struct scsi_host_template ufshcd_driver_template = {
 	.eh_host_reset_handler   = ufshcd_eh_host_reset_handler,
 	.eh_timed_out		= ufshcd_eh_timed_out,
 	.this_id		= -1,
-	.sg_tablesize		= SG_ALL,
+	.sg_tablesize		= SG_UFS,
 	.cmd_per_lun		= UFSHCD_CMD_PER_LUN,
 	.can_queue		= UFSHCD_CAN_QUEUE,
+	.max_sectors            = UFSHCD_MAX_HW_SECTORS,
 	.max_segment_size	= PRDT_DATA_BYTE_COUNT_MAX,
 	.max_sectors		= (1 << 20) / SECTOR_SIZE, /* 1 MiB */
 	.max_host_blocked	= 1,
@@ -9402,7 +9418,7 @@ static int ufshcd_execute_start_stop(struct scsi_device *sdev,
 	};
 
 	return scsi_execute_cmd(sdev, cdb, REQ_OP_DRV_IN, /*buffer=*/NULL,
-			/*bufflen=*/0, /*timeout=*/HZ, /*retries=*/0, &args);
+			/*bufflen=*/0, /*timeout=*/10 * HZ, /*retries=*/0, &args);
 }
 
 /**
