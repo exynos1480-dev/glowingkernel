@@ -5,3 +5,7 @@ obj-$(CONFIG_ASHMEM)			+= ashmem.o
 
 # Switch Class Driver
 obj-y += switch/
+
+# freecess
+obj-$(CONFIG_SAMSUNG_FREECESS)		+= freecess.o
+obj-$(CONFIG_SAMSUNG_FREECESS)		+= freecess_pkg.o
