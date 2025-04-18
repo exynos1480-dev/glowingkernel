@@ -237,6 +237,7 @@ snd-soc-spdif-tx-objs := spdif_transmitter.o
 snd-soc-spdif-rx-objs := spdif_receiver.o
 snd-soc-src4xxx-objs := src4xxx.o
 snd-soc-src4xxx-i2c-objs := src4xxx-i2c.o
+snd-soc-s5m3700-objs := s5m3700x.o s5m3700x-jack-common.o s5m3700x-jack.o s5m3700x-usbjack.o
 snd-soc-ssm2305-objs := ssm2305.o
 snd-soc-ssm2518-objs := ssm2518.o
 snd-soc-ssm2602-objs := ssm2602.o
@@ -591,6 +592,7 @@ obj-$(CONFIG_SND_SOC_SI476X)	+= snd-soc-si476x.o
 obj-$(CONFIG_SND_SOC_SPDIF)	+= snd-soc-spdif-rx.o snd-soc-spdif-tx.o
 obj-$(CONFIG_SND_SOC_SRC4XXX)	+= snd-soc-src4xxx.o
 obj-$(CONFIG_SND_SOC_SRC4XXX_I2C)	+= snd-soc-src4xxx-i2c.o
+obj-$(CONFIG_SND_SOC_S5M3700X) += snd-soc-s5m3700.o
 obj-$(CONFIG_SND_SOC_SSM2305)	+= snd-soc-ssm2305.o
 obj-$(CONFIG_SND_SOC_SSM2518)	+= snd-soc-ssm2518.o
 obj-$(CONFIG_SND_SOC_SSM2602)	+= snd-soc-ssm2602.o
@@ -718,8 +720,8 @@ obj-$(CONFIG_SND_SOC_LPASS_WSA_MACRO)	+= snd-soc-lpass-wsa-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_VA_MACRO)	+= snd-soc-lpass-va-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_RX_MACRO)	+= snd-soc-lpass-rx-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_TX_MACRO)	+= snd-soc-lpass-tx-macro.o
-obj-$(CONFIG_SND_SOC_TFA9878)	+= tfa9878/
-obj-$(CONFIG_SND_SOC_TAS25XX)	+= tas25xx/
+obj-$(CONFIG_SND_SOC_TFA9878)		+= tfa9878/
+obj-$(CONFIG_SND_SOC_TAS25XX)		+= tas25xx/
 
 # Mux
 obj-$(CONFIG_SND_SOC_SIMPLE_MUX)	+= snd-soc-simple-mux.o
