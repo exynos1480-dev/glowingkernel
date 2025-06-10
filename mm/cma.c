@@ -388,7 +388,6 @@ err:
 	return ret;
 }
 
-#ifdef CONFIG_CMA_DEBUG
 static void cma_debug_show_areas(struct cma *cma)
 {
 	unsigned long next_zero_bit, next_set_bit, nr_zero;
@@ -413,9 +412,6 @@ static void cma_debug_show_areas(struct cma *cma)
 	pr_cont("=> %lu free of %lu total pages\n", nr_total, cma->count);
 	spin_unlock_irq(&cma->lock);
 }
-#else
-static inline void cma_debug_show_areas(struct cma *cma) { }
-#endif
 
 /**
  * __cma_alloc() - allocate pages from contiguous area
@@ -439,7 +435,7 @@ struct page *__cma_alloc(struct cma *cma, unsigned long count,
 	struct page *page = NULL;
 	int ret = -ENOMEM;
 	int num_attempts = 0;
-	int max_retries = 5;
+	int max_retries = 10;
 	const char *name = cma ? cma->name : NULL;
 
 	trace_cma_alloc_start(name, count, align);
