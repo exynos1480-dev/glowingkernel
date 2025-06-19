@@ -298,7 +298,7 @@ int vfs_fstatat(int dfd, const char __user *filename,
 	struct filename *name;
 
 #ifdef CONFIG_KSU_SUSFS_SUS_SU
-	if (susfs_is_sus_su_hooks_enabled) {
+	if (likely(susfs_is_sus_su_hooks_enabled)) {
 		name = susfs_ksu_handle_stat(&dfd, &filename, &statx_flags);
 		goto orig_flow;
 	}

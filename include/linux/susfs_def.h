@@ -2,14 +2,14 @@
 #define KSU_SUSFS_DEF_H
 
 #include <linux/bits.h>
-#include <linux/cred.h>
-#include <linux/fs.h>
 
 /********/
 /* ENUM */
 /********/
 /* shared with userspace ksu_susfs tool */
 #define CMD_SUSFS_ADD_SUS_PATH 0x55550
+#define CMD_SUSFS_SET_ANDROID_DATA_ROOT_PATH 0x55551
+#define CMD_SUSFS_SET_SDCARD_ROOT_PATH 0x55552
 #define CMD_SUSFS_ADD_SUS_MOUNT 0x55560
 #define CMD_SUSFS_HIDE_SUS_MNTS_FOR_ALL_PROCS 0x55561
 #define CMD_SUSFS_ADD_SUS_KSTAT 0x55570
@@ -48,11 +48,12 @@
  * task_struct->susfs_last_fake_mnt_id => storing last valid fake mnt_id (will be deprecated or exclusive for non-gki only)
  * task_struct->susfs_task_state => storing flag 'TASK_STRUCT_'
  */
-
 #define INODE_STATE_SUS_PATH BIT(24)
 #define INODE_STATE_SUS_MOUNT BIT(25)
 #define INODE_STATE_SUS_KSTAT BIT(26)
 #define INODE_STATE_OPEN_REDIRECT BIT(27)
+#define INODE_STATE_ANDROID_DATA_ROOT_DIR BIT(28)
+#define INODE_STATE_SDCARD_ROOT_DIR BIT(29)
 
 #define TASK_STRUCT_NON_ROOT_USER_APP_PROC BIT(24)
 
@@ -61,12 +62,5 @@
 #define DATA_ADB_NO_AUTO_ADD_SUS_BIND_MOUNT "/data/adb/susfs_no_auto_add_sus_bind_mount"
 #define DATA_ADB_NO_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT "/data/adb/susfs_no_auto_add_sus_ksu_default_mount"
 #define DATA_ADB_NO_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT "/data/adb/susfs_no_auto_add_try_umount_for_bind_mount"
-
-static inline bool susfs_need_to_spoof_sus_path(struct inode *inode, uid_t i_uid)
-{
-    return (unlikely(inode->i_state & INODE_STATE_SUS_PATH) &&
-            (likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC)) &&
-            i_uid != current_uid().val);
-}
 
 #endif // #ifndef KSU_SUSFS_DEF_H
