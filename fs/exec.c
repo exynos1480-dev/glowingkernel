@@ -1901,9 +1901,8 @@ static int do_execveat_common(int fd, struct filename *filename,
 		return PTR_ERR(filename);
 
 #ifdef CONFIG_KSU_SUSFS_SUS_SU
-	if (likely(susfs_is_sus_su_hooks_enabled)) {
+	if (susfs_is_sus_su_hooks_enabled)
 		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
-	}
 #endif
 
 	/*
