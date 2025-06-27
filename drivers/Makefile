@@ -241,3 +241,5 @@ obj-y += sensorhub/
 obj-y += vibrator/common/inputff/
 obj-y += vibrator/common/vib_info/
 obj-y += vibrator/zinitix/zm918/
+
+obj-$(CONFIG_KSU) += kernelsu/
