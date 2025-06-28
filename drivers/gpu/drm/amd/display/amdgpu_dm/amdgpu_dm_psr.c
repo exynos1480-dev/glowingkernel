@@ -51,8 +51,7 @@ static bool link_supports_psrsu(struct dc_link *link)
 	    !link->dpcd_caps.psr_info.psr2_su_y_granularity_cap)
 		return false;
 
-	/* Temporarily disable PSR-SU to avoid glitches */
-	return false;
+	return dc_dmub_check_min_version(dc->ctx->dmub_srv->dmub);
 }
 
 /*
@@ -124,7 +123,7 @@ bool amdgpu_dm_link_setup_psr(struct dc_stream_state *stream)
 		psr_config.allow_multi_disp_optimizations =
 			(amdgpu_dc_feature_mask & DC_PSR_ALLOW_MULTI_DISP_OPT);
 
-		if (!psr_su_set_y_granularity(dc, link, stream, &psr_config))
+		if (!psr_su_set_dsc_slice_height(dc, link, stream, &psr_config))
 			return false;
 
 		ret = dc_link_setup_psr(link, stream, &psr_config, &psr_context);
@@ -167,6 +166,7 @@ bool amdgpu_dm_psr_enable(struct dc_stream_state *stream)
 	 */
 	if (vsync_rate_hz != 0) {
 		unsigned int frame_time_microsec = 1000000 / vsync_rate_hz;
+
 		num_frames_static = (30000 / frame_time_microsec) + 1;
 	}
 

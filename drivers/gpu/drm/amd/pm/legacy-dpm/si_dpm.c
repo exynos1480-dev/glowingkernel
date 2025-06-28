@@ -7713,20 +7713,13 @@ static int si_dpm_init_microcode(struct amdgpu_device *adev)
 	}
 
 	snprintf(fw_name, sizeof(fw_name), "amdgpu/%s_smc.bin", chip_name);
-	err = request_firmware(&adev->pm.fw, fw_name, adev->dev);
-	if (err)
-		goto out;
-	err = amdgpu_ucode_validate(adev->pm.fw);
-
-out:
+	err = amdgpu_ucode_request(adev, &adev->pm.fw, fw_name);
 	if (err) {
 		DRM_ERROR("si_smc: Failed to load firmware. err = %d\"%s\"\n",
 			  err, fw_name);
-		release_firmware(adev->pm.fw);
-		adev->pm.fw = NULL;
+		amdgpu_ucode_release(&adev->pm.fw);
 	}
 	return err;
-
 }
 
 static int si_dpm_sw_init(void *handle)
@@ -7796,7 +7789,6 @@ static int si_dpm_hw_init(void *handle)
 	if (!amdgpu_dpm)
 		return 0;
 
-	mutex_lock(&adev->pm.mutex);
 	si_dpm_setup_asic(adev);
 	ret = si_dpm_enable(adev);
 	if (ret)
@@ -7804,7 +7796,6 @@ static int si_dpm_hw_init(void *handle)
 	else
 		adev->pm.dpm_enabled = true;
 	amdgpu_legacy_dpm_compute_clocks(adev);
-	mutex_unlock(&adev->pm.mutex);
 	return ret;
 }
 
@@ -7822,44 +7813,32 @@ static int si_dpm_suspend(void *handle)
 {
 	struct amdgpu_device *adev = (struct amdgpu_device *)handle;
 
-	cancel_work_sync(&adev->pm.dpm.thermal.work);
-
 	if (adev->pm.dpm_enabled) {
-		mutex_lock(&adev->pm.mutex);
-		adev->pm.dpm_enabled = false;
 		/* disable dpm */
 		si_dpm_disable(adev);
 		/* reset the power state */
 		adev->pm.dpm.current_ps = adev->pm.dpm.requested_ps = adev->pm.dpm.boot_ps;
-		mutex_unlock(&adev->pm.mutex);
 	}
-
 	return 0;
 }
 
 static int si_dpm_resume(void *handle)
 {
-	int ret = 0;
+	int ret;
 	struct amdgpu_device *adev = (struct amdgpu_device *)handle;
 
-	if (!amdgpu_dpm)
-		return 0;
-
-	if (!adev->pm.dpm_enabled) {
+	if (adev->pm.dpm_enabled) {
 		/* asic init will reset to the boot state */
-		mutex_lock(&adev->pm.mutex);
 		si_dpm_setup_asic(adev);
 		ret = si_dpm_enable(adev);
-		if (ret) {
+		if (ret)
 			adev->pm.dpm_enabled = false;
-		} else {
+		else
 			adev->pm.dpm_enabled = true;
+		if (adev->pm.dpm_enabled)
 			amdgpu_legacy_dpm_compute_clocks(adev);
-		}
-		mutex_unlock(&adev->pm.mutex);
 	}
-
-	return ret;
+	return 0;
 }
 
 static bool si_dpm_is_idle(void *handle)

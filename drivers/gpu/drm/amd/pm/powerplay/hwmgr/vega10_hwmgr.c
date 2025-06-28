@@ -22,7 +22,6 @@
  */
 
 #include <linux/delay.h>
-#include <linux/fb.h>
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
@@ -1387,8 +1386,7 @@ static int vega10_setup_default_dpm_tables(struct pp_hwmgr *hwmgr)
 						dep_mm_table->entries[i].eclk) {
 			dpm_table->dpm_levels[dpm_table->count].value =
 					dep_mm_table->entries[i].eclk;
-			dpm_table->dpm_levels[dpm_table->count].enabled =
-					(i == 0) ? true : false;
+			dpm_table->dpm_levels[dpm_table->count].enabled = i == 0;
 			dpm_table->count++;
 		}
 	}
@@ -1403,8 +1401,7 @@ static int vega10_setup_default_dpm_tables(struct pp_hwmgr *hwmgr)
 						dep_mm_table->entries[i].vclk) {
 			dpm_table->dpm_levels[dpm_table->count].value =
 					dep_mm_table->entries[i].vclk;
-			dpm_table->dpm_levels[dpm_table->count].enabled =
-					(i == 0) ? true : false;
+			dpm_table->dpm_levels[dpm_table->count].enabled = i == 0;
 			dpm_table->count++;
 		}
 	}
@@ -1417,8 +1414,7 @@ static int vega10_setup_default_dpm_tables(struct pp_hwmgr *hwmgr)
 						dep_mm_table->entries[i].dclk) {
 			dpm_table->dpm_levels[dpm_table->count].value =
 					dep_mm_table->entries[i].dclk;
-			dpm_table->dpm_levels[dpm_table->count].enabled =
-					(i == 0) ? true : false;
+			dpm_table->dpm_levels[dpm_table->count].enabled = i == 0;
 			dpm_table->count++;
 		}
 	}
@@ -4002,7 +3998,7 @@ static int vega10_read_sensor(struct pp_hwmgr *hwmgr, int idx,
 		*((uint32_t *)value) = data->vce_power_gated ? 0 : 1;
 		*size = 4;
 		break;
-	case AMDGPU_PP_SENSOR_GPU_POWER:
+	case AMDGPU_PP_SENSOR_GPU_INPUT_POWER:
 		ret = vega10_get_gpu_power(hwmgr, (uint32_t *)value);
 		break;
 	case AMDGPU_PP_SENSOR_VDDGFX:

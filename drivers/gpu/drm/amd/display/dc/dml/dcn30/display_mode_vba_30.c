@@ -23,9 +23,7 @@
  *
  */
 
-#ifdef CONFIG_DRM_AMD_DC_DCN
 #include "dc.h"
-#include "dc_link.h"
 #include "../display_mode_lib.h"
 #include "display_mode_vba_30.h"
 #include "../dml_inline_defs.h"
@@ -283,10 +281,10 @@ static void CalculateDynamicMetadataParameters(
 		double DISPCLK,
 		double DCFClkDeepSleep,
 		double PixelClock,
-		unsigned int HTotal,
-		unsigned int VBlank,
-		unsigned int DynamicMetadataTransmittedBytes,
-		int DynamicMetadataLinesBeforeActiveRequired,
+		long HTotal,
+		long VBlank,
+		long DynamicMetadataTransmittedBytes,
+		long DynamicMetadataLinesBeforeActiveRequired,
 		int InterlaceEnable,
 		bool ProgressiveToInterlaceUnitInOPP,
 		double *Tsetup,
@@ -786,8 +784,7 @@ static unsigned int dscComputeDelay(enum output_format_class pixelFormat, enum o
 		Delay = Delay + 1;
 		//   sft
 		Delay = Delay + 1;
-	}
-	else {
+	} else {
 		//   sfr
 		Delay = Delay + 2;
 		//   dsccif
@@ -3280,8 +3277,8 @@ static double CalculateWriteBackDelay(
 
 
 static void CalculateDynamicMetadataParameters(int MaxInterDCNTileRepeaters, double DPPCLK, double DISPCLK,
-		double DCFClkDeepSleep, double PixelClock, unsigned int HTotal, unsigned int VBlank, unsigned int DynamicMetadataTransmittedBytes,
-		int DynamicMetadataLinesBeforeActiveRequired, int InterlaceEnable, bool ProgressiveToInterlaceUnitInOPP,
+		double DCFClkDeepSleep, double PixelClock, long HTotal, long VBlank, long DynamicMetadataTransmittedBytes,
+		long DynamicMetadataLinesBeforeActiveRequired, int InterlaceEnable, bool ProgressiveToInterlaceUnitInOPP,
 		double *Tsetup, double *Tdmbf, double *Tdmec, double *Tdmsks)
 {
 	double TotalRepeaterDelayTime = 0;
@@ -3491,8 +3488,7 @@ static double TruncToValidBPP(
 		if (Format == dm_n422) {
 			MinDSCBPP = 7;
 			MaxDSCBPP = 2 * DSCInputBitPerComponent - 1.0 / 16.0;
-		}
-		else {
+		} else {
 			MinDSCBPP = 8;
 			MaxDSCBPP = 3 * DSCInputBitPerComponent - 1.0 / 16.0;
 		}
@@ -4854,7 +4850,7 @@ void dml30_ModeSupportAndSystemConfigurationFull(struct display_mode_lib *mode_l
 							v->SwathHeightYThisState[k],
 							v->SwathHeightCThisState[k],
 							v->HTotal[k] / v->PixelClock[k],
-							v->UrgentLatency,
+							v->UrgLatency[i],
 							v->CursorBufferSize,
 							v->CursorWidth[k][0],
 							v->CursorBPP[k][0],
@@ -4941,8 +4937,8 @@ void dml30_ModeSupportAndSystemConfigurationFull(struct display_mode_lib *mode_l
 					}
 					v->TotImmediateFlipBytes = 0.0;
 					for (k = 0; k <= v->NumberOfActivePlanes - 1; k++) {
-						v->TotImmediateFlipBytes = v->TotImmediateFlipBytes + v->NoOfDPP[i][j][k] * v->PDEAndMetaPTEBytesPerFrame[i][j][k]
-								+ v->MetaRowBytes[i][j][k] + v->DPTEBytesPerRow[i][j][k];
+						v->TotImmediateFlipBytes = v->TotImmediateFlipBytes + v->NoOfDPP[i][j][k] * (v->PDEAndMetaPTEBytesPerFrame[i][j][k]
+								+ v->MetaRowBytes[i][j][k] + v->DPTEBytesPerRow[i][j][k]);
 					}
 
 					for (k = 0; k <= v->NumberOfActivePlanes - 1; k++) {
@@ -5132,7 +5128,7 @@ void dml30_ModeSupportAndSystemConfigurationFull(struct display_mode_lib *mode_l
 			ViewportExceedsSurface = true;
 
 		if (v->SourcePixelFormat[k] != dm_444_64 && v->SourcePixelFormat[k] != dm_444_32 && v->SourcePixelFormat[k] != dm_444_16
-				&& v->SourcePixelFormat[k] != dm_444_8 && v->SourcePixelFormat[k] != dm_rgbe) {
+				&& v->SourcePixelFormat[k] != dm_444_16 && v->SourcePixelFormat[k] != dm_444_8 && v->SourcePixelFormat[k] != dm_rgbe) {
 			if (v->ViewportWidthChroma[k] > v->SurfaceWidthC[k] || v->ViewportHeightChroma[k] > v->SurfaceHeightC[k]) {
 				ViewportExceedsSurface = true;
 			}
@@ -6635,4 +6631,3 @@ static noinline_for_stack void UseMinimumDCFCLK(
 	}
 }
 
-#endif /* CONFIG_DRM_AMD_DC_DCN */
