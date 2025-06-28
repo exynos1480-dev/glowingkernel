@@ -22,8 +22,6 @@
  */
 
 #include <drm/drm_fourcc.h>
-#include <drm/drm_modeset_helper.h>
-#include <drm/drm_modeset_helper_vtables.h>
 #include <drm/drm_vblank.h>
 
 #include "amdgpu.h"
@@ -52,7 +50,8 @@
 static void dce_v10_0_set_display_funcs(struct amdgpu_device *adev);
 static void dce_v10_0_set_irq_funcs(struct amdgpu_device *adev);
 
-static const u32 crtc_offsets[] = {
+static const u32 crtc_offsets[] =
+{
 	CRTC0_REGISTER_OFFSET,
 	CRTC1_REGISTER_OFFSET,
 	CRTC2_REGISTER_OFFSET,
@@ -62,7 +61,8 @@ static const u32 crtc_offsets[] = {
 	CRTC6_REGISTER_OFFSET
 };
 
-static const u32 hpd_offsets[] = {
+static const u32 hpd_offsets[] =
+{
 	HPD0_REGISTER_OFFSET,
 	HPD1_REGISTER_OFFSET,
 	HPD2_REGISTER_OFFSET,
@@ -119,26 +119,30 @@ static const struct {
 	.hpd = DISP_INTERRUPT_STATUS_CONTINUE5__DC_HPD6_INTERRUPT_MASK
 } };
 
-static const u32 golden_settings_tonga_a11[] = {
+static const u32 golden_settings_tonga_a11[] =
+{
 	mmDCI_CLK_CNTL, 0x00000080, 0x00000000,
 	mmFBC_DEBUG_COMP, 0x000000f0, 0x00000070,
 	mmFBC_MISC, 0x1f311fff, 0x12300000,
 	mmHDMI_CONTROL, 0x31000111, 0x00000011,
 };
 
-static const u32 tonga_mgcg_cgcg_init[] = {
+static const u32 tonga_mgcg_cgcg_init[] =
+{
 	mmXDMA_CLOCK_GATING_CNTL, 0xffffffff, 0x00000100,
 	mmXDMA_MEM_POWER_CNTL, 0x00000101, 0x00000000,
 };
 
-static const u32 golden_settings_fiji_a10[] = {
+static const u32 golden_settings_fiji_a10[] =
+{
 	mmDCI_CLK_CNTL, 0x00000080, 0x00000000,
 	mmFBC_DEBUG_COMP, 0x000000f0, 0x00000070,
 	mmFBC_MISC, 0x1f311fff, 0x12300000,
 	mmHDMI_CONTROL, 0x31000111, 0x00000011,
 };
 
-static const u32 fiji_mgcg_cgcg_init[] = {
+static const u32 fiji_mgcg_cgcg_init[] =
+{
 	mmXDMA_CLOCK_GATING_CNTL, 0xffffffff, 0x00000100,
 	mmXDMA_MEM_POWER_CNTL, 0x00000101, 0x00000000,
 };
@@ -1419,7 +1423,8 @@ static void dce_v10_0_audio_enable(struct amdgpu_device *adev,
 			   enable ? AZALIA_F0_CODEC_PIN_CONTROL_HOT_PLUG_CONTROL__AUDIO_ENABLED_MASK : 0);
 }
 
-static const u32 pin_offsets[] = {
+static const u32 pin_offsets[] =
+{
 	AUD0_REGISTER_OFFSET,
 	AUD1_REGISTER_OFFSET,
 	AUD2_REGISTER_OFFSET,
@@ -1804,7 +1809,8 @@ static void dce_v10_0_afmt_fini(struct amdgpu_device *adev)
 	}
 }
 
-static const u32 vga_control_regs[6] = {
+static const u32 vga_control_regs[6] =
+{
 	mmD1VGA_CONTROL,
 	mmD2VGA_CONTROL,
 	mmD3VGA_CONTROL,
@@ -2794,6 +2800,8 @@ static int dce_v10_0_sw_init(void *handle)
 
 	adev_to_drm(adev)->mode_config.fb_modifiers_not_supported = true;
 
+	adev_to_drm(adev)->mode_config.fb_base = adev->gmc.aper_base;
+
 	r = amdgpu_display_modeset_create_props(adev);
 	if (r)
 		return r;
@@ -2821,17 +2829,6 @@ static int dce_v10_0_sw_init(void *handle)
 	r = dce_v10_0_audio_init(adev);
 	if (r)
 		return r;
-
-	/* Disable vblank IRQs aggressively for power-saving */
-	/* XXX: can this be enabled for DC? */
-	adev_to_drm(adev)->vblank_disable_immediate = true;
-
-	r = drm_vblank_init(adev_to_drm(adev), adev->mode_info.num_crtc);
-	if (r)
-		return r;
-
-	INIT_DELAYED_WORK(&adev->hotplug_work,
-		  amdgpu_display_hotplug_work_func);
 
 	drm_kms_helper_poll_init(adev_to_drm(adev));
 
@@ -2894,8 +2891,6 @@ static int dce_v10_0_hw_fini(void *handle)
 	}
 
 	dce_v10_0_pageflip_interrupt_fini(adev);
-
-	flush_delayed_work(&adev->hotplug_work);
 
 	return 0;
 }
@@ -3295,7 +3290,7 @@ static int dce_v10_0_hpd_irq(struct amdgpu_device *adev,
 
 	if (disp_int & mask) {
 		dce_v10_0_hpd_int_ack(adev, hpd);
-		schedule_delayed_work(&adev->hotplug_work, 0);
+		schedule_work(&adev->hotplug_work);
 		DRM_DEBUG("IH: HPD%d\n", hpd + 1);
 	}
 
@@ -3643,7 +3638,8 @@ static void dce_v10_0_set_irq_funcs(struct amdgpu_device *adev)
 	adev->hpd_irq.funcs = &dce_v10_0_hpd_irq_funcs;
 }
 
-const struct amdgpu_ip_block_version dce_v10_0_ip_block = {
+const struct amdgpu_ip_block_version dce_v10_0_ip_block =
+{
 	.type = AMD_IP_BLOCK_TYPE_DCE,
 	.major = 10,
 	.minor = 0,
@@ -3651,7 +3647,8 @@ const struct amdgpu_ip_block_version dce_v10_0_ip_block = {
 	.funcs = &dce_v10_0_ip_funcs,
 };
 
-const struct amdgpu_ip_block_version dce_v10_1_ip_block = {
+const struct amdgpu_ip_block_version dce_v10_1_ip_block =
+{
 	.type = AMD_IP_BLOCK_TYPE_DCE,
 	.major = 10,
 	.minor = 1,

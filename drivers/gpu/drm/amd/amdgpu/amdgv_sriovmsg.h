@@ -70,6 +70,7 @@ enum amd_sriov_ucode_engine_id {
 	AMD_SRIOV_UCODE_ID_RLC_SRLS,
 	AMD_SRIOV_UCODE_ID_MEC,
 	AMD_SRIOV_UCODE_ID_MEC2,
+	AMD_SRIOV_UCODE_ID_IMU,
 	AMD_SRIOV_UCODE_ID_SOS,
 	AMD_SRIOV_UCODE_ID_ASD,
 	AMD_SRIOV_UCODE_ID_TA_RAS,
@@ -92,8 +93,7 @@ union amd_sriov_msg_feature_flags {
 		uint32_t mm_bw_management  : 1;
 		uint32_t pp_one_vf_mode	   : 1;
 		uint32_t reg_indirect_acc  : 1;
-		uint32_t av1_support       : 1;
-		uint32_t reserved	   : 25;
+		uint32_t reserved	   : 26;
 	} flags;
 	uint32_t all;
 };
@@ -209,7 +209,7 @@ struct amd_sriov_msg_pf2vf_info {
 	uint32_t pcie_atomic_ops_support_flags;
 	/* reserved */
 	uint32_t reserved[256 - AMD_SRIOV_MSG_PF2VF_INFO_FILLED_SIZE];
-};
+} __packed;
 
 struct amd_sriov_msg_vf2pf_info_header {
 	/* the total structure size in byte */
@@ -267,7 +267,7 @@ struct amd_sriov_msg_vf2pf_info {
 
 	/* reserved */
 	uint32_t reserved[256 - AMD_SRIOV_MSG_VF2PF_INFO_FILLED_SIZE];
-};
+} __packed;
 
 /* mailbox message send from guest to host  */
 enum amd_sriov_mailbox_request_message {

@@ -1902,7 +1902,7 @@ static int sienna_cichlid_read_sensor(struct smu_context *smu,
 							  (uint32_t *)data);
 		*size = 4;
 		break;
-	case AMDGPU_PP_SENSOR_GPU_AVG_POWER:
+	case AMDGPU_PP_SENSOR_GPU_POWER:
 		ret = sienna_cichlid_get_smu_metrics_data(smu,
 							  METRICS_AVERAGE_SOCKETPOWER,
 							  (uint32_t *)data);
@@ -1962,7 +1962,6 @@ static int sienna_cichlid_read_sensor(struct smu_context *smu,
 			ret = -EOPNOTSUPP;
 		}
 		break;
-	case AMDGPU_PP_SENSOR_GPU_INPUT_POWER:
 	default:
 		ret = -EOPNOTSUPP;
 		break;
@@ -2108,7 +2107,7 @@ static int sienna_cichlid_update_pcie_parameters(struct smu_context *smu,
 	min_lane_width = min_lane_width > max_lane_width ?
 			 max_lane_width : min_lane_width;
 
-	if (!(smu->adev->pm.pp_feature & PP_PCIE_DPM_MASK)) {
+	if (!amdgpu_device_pcie_dynamic_switching_supported()) {
 		pcie_table->pcie_gen[0] = max_gen_speed;
 		pcie_table->pcie_lane[0] = max_lane_width;
 	} else {
@@ -3799,6 +3798,7 @@ static int sienna_cichlid_i2c_xfer(struct i2c_adapter *i2c_adap,
 	}
 	mutex_lock(&adev->pm.mutex);
 	r = smu_cmn_update_table(smu, SMU_TABLE_I2C_COMMANDS, 0, req, true);
+	mutex_unlock(&adev->pm.mutex);
 	if (r)
 		goto fail;
 
@@ -3815,7 +3815,6 @@ static int sienna_cichlid_i2c_xfer(struct i2c_adapter *i2c_adap,
 	}
 	r = num_msgs;
 fail:
-	mutex_unlock(&adev->pm.mutex);
 	kfree(req);
 	return r;
 }
